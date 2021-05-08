@@ -1,0 +1,22 @@
+%%
+% Read scan continously
+
+
+if ismember('/scan',rostopic('list'))
+    scansub = rossubscriber('/scan');
+    
+    
+    while(1)
+        linescan = receive(scansub); %Receive message
+        ranges = linescan.Ranges; % Extract scan
+        angles = linescan.AngleMin:linescan.AngleIncrement:linescan.AngleMax;
+        
+        angleInDegrees = rad2deg(angles);
+        
+        
+        plot(angleInDegrees, ranges)
+        xlabel('Angle [Degrees]')
+        ylabel('Distance [m]')
+        %saveas(gcf,'linescan.png')
+    end
+end
