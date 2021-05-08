@@ -69,6 +69,7 @@ distanceToGoal = norm(GazeboInitialLocation - gazebogoal');
 %%
 
 
+
 %% Initialize the simulation loop
 %%% Initialize the simulation loop
 sampleTime = 0.1;
