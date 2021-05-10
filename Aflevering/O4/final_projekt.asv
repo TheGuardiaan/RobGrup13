@@ -223,19 +223,18 @@ function findGreenDot(robotPub)
     disp("Run findGreenDot Func")
     greenDotNotFound = true;
     
-    
     while (greenDotNotFound)   
         
-        foundGreenDot = takePicture();
-        
-        for c = 1:0          
+        for c = 1:1          
             sendVelmsgRob(0, 0.5, robotPub)
-            pause(1)
+            pause(0.5)
             
             %Stop Robot
             sendVelmsgRob(0, 0, robotPub)
         end
-         
+        
+
+        foundGreenDot = takePicture();
         
         if (foundGreenDot) %Make BIB sound ----                
                 for c = 1:3
@@ -266,72 +265,47 @@ function foundGreenDot = takePicture()
     imshow(img);
 
     pause(1) %Delay
-    
-    foundGreenDot = dotFound(img)
-   
-    
-end
 
-
-function foundGreenDot = dotFound(img)
-    %m1 = imread('IMG1.JPG');
-    %imshow(m1)
+        
+        
+    % ---- Scan ---
+    m1 = imread('IMG1.JPG');
+    imshow(m1)
 
     %%
-    %m1g = rgb2gray(img);
-    %imshow(m1g)  
-    
-    blueBallParams.blueMax = 120;  % Maximum permissible deviation from pure blue
-    blueBallParams.darkMin = 30;   % Minimum acceptable darkness value
+    m1g = rgb2gray(m1);
+    %imshow(m1)
+    imagesc(m1g), colorbar
 
+    %%
+    m1b = m1g < 130; % Image Segmenter APP
+    imagesc(m1b)
 
-    % Parameters for ball position and size
-    horizontalTolerance = 20;
-    sizeGoal = 70;
-    sizeTolerance = 5;
-     for i = 1:100
-        % Get latest image, ball postion, and ball size.
-        %latestImg = getColorImage(tbot);
-        latestImg = img;
-        
-        [height,width] = size(latestImg);
-        [position,ballSize] = exampleHelperTurtleBotFindBlueBall(latestImg,blueBallParams);
+    %%
+    m1bd = imclose(m1b, strel('disk', 20)); % fill holes in disc
+    imagesc(m1bd)
 
-        % Initialize velocities to zero.
-        linearVel = 0; 
-        angularVel = 0;
+    %%
+    m1be = bwpropfilt(m1bd, 'Area', [1000 200000]); % remove small blobs..
+    imagesc(m1be)
 
-        % Left and right controls
-        if isempty(position)
-            angularVel = 0.5;
-            linearVel = 0;
-        elseif (position(1) > (width/2)-horizontalTolerance)
-            angularVel = 0.2;
-        elseif (position(1) < (width/2)+horizontalTolerance)
-            angularVel = -0.2;
-        end
+    %% visualize / analyze..
+    m1lab = bwlabel(m1be);
+    m1prop = regionprops(m1lab, 'Area', 'Eccentricity') % find features..
 
-        % Forward and back control
-        if isempty(ballSize)
-            angularVel = 0.5;
-            linearVel = 0;
-        elseif ballSize > sizeGoal + sizeTolerance
-            linearVel = - 0.1;
-        elseif ballSize < sizeGoal - sizeTolerance
-            linearVel = 0.1;
-        end
+    %% remove high Eccentricity..
+    m1bf = bwpropfilt(m1be, 'Eccentricity', 1, 'smallest');
+    imagesc(m1bf)
 
-        % Send velocity commands and wait for commands to send.
-        %setVelocity(tbot,linearVel,angularVel)
-        pause(0.2)
-     end
-          
-    test = false;
-    pause(1)
-    if test
-        disp('GOAL!'); 
-        foundGreenDot = true;      
-    else
-        foundGreenDot = false;  
+    %% Make a decision..
+    m1prop = regionprops(m1bf, 'Area', 'Eccentricity'); % find features..
+    if m1prop.Eccentricity < 0.6, 
+        disp('GOAL!'), 
     end
+
+
+        
+        
+        foundGreenDot = false;      
 end
+

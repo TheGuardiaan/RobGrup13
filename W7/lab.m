@@ -2,7 +2,7 @@ clear all
 clc
 
 
-image = imread("E:\Software_IKT\IHA\ITROB2_Robotter\W7\IMG_2323.jpg");
+%image = imread("E:\Software_IKT\IHA\ITROB2_Robotter\W7\IMG_2323.jpg");
 
 
 imageSuits  = imread("Suits.png");

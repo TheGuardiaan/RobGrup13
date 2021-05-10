@@ -14,18 +14,16 @@ rosinit(VmIp,'NodeHost',MyIp);
 
 %%
 % Read scan continously
-
 a_flag = true;
 if ismember('/scan',rostopic('list'))
     scansub = rossubscriber('/scan');  
     while(a_flag)
         linescan = receive(scansub); %Receive message
-        ranges = linescan.Ranges; % Extract scan
+        ranges = linescan.Ranges; %Extract scan
         angles = linescan.AngleMin:linescan.AngleIncrement:linescan.AngleMax;
         
         angleInDegrees = rad2deg(angles);
-        
-        
+                
         plot(angleInDegrees, ranges)
         xlabel('Angle [Degrees]')
         ylabel('Distance [m]')
@@ -33,8 +31,7 @@ if ismember('/scan',rostopic('list'))
                 
         disp("Ranges");
             disp(ranges);
-            
-            
+                        
        a_flag = false;
     end
 end
@@ -58,7 +55,7 @@ backwardVelocity = -0.1; % Linear velocity (reverse) (m/s)
 %distanceThreshold = 1; % Distance threshold (m) for turning
 distanceThresholdMin = 0.5;  
 distanceThresholdMax = 0.7;
- 
+
 if ismember('/scan',rostopic('list')) %Check if conecctet to robot
     
     scansub = rossubscriber('/scan');   
