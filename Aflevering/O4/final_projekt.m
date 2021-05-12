@@ -21,8 +21,6 @@ map = binaryOccupancyMap(bwimage,21)
 %Reslusion til 21 for at scalere 2D map til 3D map som cirka er 54m
 show(map)
 
-
-
 robotPub = rospublisher('/mobile_base/commands/velocity');
 sendVelmsgRob(0,0, robotPub); %Reset Rob AngularVel to 0
 
@@ -242,6 +240,7 @@ function findGreenDot(robotPub)
     end
 end
 
+
 function foundGreenDot = takePicture()
     % --- Debug ---
     disp("Take Picture");
@@ -256,72 +255,44 @@ function foundGreenDot = takePicture()
     end
 
     imgraw = receive(imsub); % a serialised image
-    img = readImage(imgraw); % decode image
+    img = readImage(imgraw); % decode image    
+    
+    
     figure(3)
     imshow(img);
 
     pause(1) %Delay
+
+     
+      
     
-    foundGreenDot = dotFound(img)    
+      foundGreenDot = dotFound(img);  
 end
 
 
-function foundGreenDot = dotFound(RGB)
-      
-    maskedRGBImage = createMask(RGB);
-    imshow(maskedRGBImage)
-    pause(3)
-    
-    
-    greenThresh = 0.05; % Threshold for green detection
-    
-    rgbFrame = maskedRGBImage;
-    diffFrameGreen = imsubtract(rgbFrame(:,:,2), rgb2gray(rgbFrame)); % Get green component of the image
-    diffFrameGreen = medfilt2(diffFrameGreen, [3 3]); % Filter out the noise by using median filter
-    binFrameGreen = im2bw(diffFrameGreen, greenThresh); % Convert the image into binary image with the green objects as wh
-      
-    imshow(binFrameGreen)
-  
-    BW = binFrameGreen;
-    [H,T,R] = hough(BW,'RhoResolution',0.5,'Theta',-90:0.5:89);
-    P  = houghpeaks(H,50,'threshold',ceil(0.5*max(H(:))));
-    lines = houghlines(BW,T,R,P,'FillGap',20,'MinLength',20);
+function foundGreenDot = dotFound(RGB)      
 
-
-    figure(2), imshow(im), hold on
-    max_len = 0;
-    for k = 1:length(lines)
-        if abs(abs(lines(k).theta)-90) > 5 % my ugly fix to remove unwanted lines
-            xy = [lines(k).point1; lines(k).point2];
-            plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
-
-
-            % Plot beginnings and ends of lines
-            plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');
-            plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
-
-            % Determine the endpoints of the longest line segment
-            len = norm(lines(k).point1 - lines(k).point2);
-            if ( len > max_len)
-                max_len = len;
-                xy_long = xy;
-            end
-        end
-    end
+    imshow(RGB);
     
+    BW = createMask(RGB);
     
+    imshow(BW);
     
-    %disp("green_component: " + green_component);    
+    stats = regionprops('table',BW,'Centroid');
+    
+    if(stats.Centroid )
+        disp("green dot found");
+        foundGreenDot = true; 
         
-    isGreen = false;
-    pause(3)
-    if isGreen
-        disp('GOAL!'); 
-        foundGreenDot = true;      
+        centers = stats.Centroid;    
+        disp("center" + centers)
     else
-        foundGreenDot = false;  
+        disp("dot not found");  
+        foundGreenDot = false;     
     end
+       
 end
+
 
 function [BW, maskedRGBImage] = createMask(RGB)
 %createMask  Threshold RGB image using auto-generated code from colorThresholder app.
@@ -344,7 +315,7 @@ channel1Max = 0.000;
 
 % Define thresholds for channel 2 based on histogram settings
 channel2Min = 0.000;
-channel2Max = 255.000;
+channel2Max = 0.000; %255.000
 
 % Define thresholds for channel 3 based on histogram settings
 channel3Min = 0.000;
