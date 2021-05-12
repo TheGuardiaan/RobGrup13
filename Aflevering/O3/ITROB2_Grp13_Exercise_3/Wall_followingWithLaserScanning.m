@@ -142,9 +142,7 @@ if ismember('/scan',rostopic('list')) %Check if conecctet to robot
             
             SpeedUp = SpeedUp + 0.01;
             disp("Speed forward" + SpeedUp);
-            
-            
-           
+                      
         elseif(dist < distanceThresholdMin) % Destance to Small
             disp("Drive Left - Destance to Small: If")
                         
