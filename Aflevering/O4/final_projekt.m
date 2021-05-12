@@ -29,9 +29,9 @@ sendVelmsgRob(0,0, robotPub); %Reset Rob AngularVel to 0
 
 
 %% ----Reset pose to [0 0] in gazebo - Need to get fix!!!
-resetRobotPose = rospublisher('/mobile_base/commands/reset_odometry');
-msg = rosmessage(resetRobotPose);
-send(resetRobotPose, msg)
+%resetRobotPose = rospublisher('/mobile_base/commands/reset_odometry');
+%msg = rosmessage(resetRobotPose);
+%send(resetRobotPose, msg)
 
 %% -----------------
 %Set new startpose - Virker ikke - Prøv med - "Localize TurtleBot Using Monte Carlo Localization"
@@ -67,7 +67,7 @@ controller = setController(path);
 drivePath(punkt_B, controller, robotPub); %(Goal,controller) 
 findGreenDot(robotPub)
 
-for c = 1:1 %Use just for testing
+for i = 1:1 %Use just for testing
     disp("---- Path 1 ---")
     pause(2)
 end
@@ -76,12 +76,12 @@ end
 path2 = findpathFunc(punkt_B, punkt_C, map, nodes, 2);
 controller2 = setController(path2);
 drivePath(punkt_C, controller2, robotPub);
-findGreenDot(robotPub)
+findGreenDot(robotPub);
 
 sendVelmsgRob(0,0, robotPub); %Stop Rob
 
 
-for c = 1:1 %Use just for testing
+for i = 1:1 %Use just for testing
     disp("----I'am Done MOM!!!!---")
     pause(2)
 end
@@ -195,7 +195,6 @@ function scanWorld()
     end
 end
 
-
 function controllerReturn = setController(path)
     disp("Run controllerReturn Func")
     %Simulering i Gazebo
@@ -214,18 +213,15 @@ function sendVelmsgRob(Linear, Angular, robotPub)
     velmsg = rosmessage(robotPub);
     velmsg.Angular.Z = Angular;	% Angular velocity (rad/s)
     velmsg.Linear.X = Linear; % Linear velocity (m/s), +forward,-reverse
-    send(robotPub,velmsg);
-    
+    send(robotPub,velmsg);   
 end
 
 
 function findGreenDot(robotPub)
     disp("Run findGreenDot Func")
     greenDotNotFound = true;
-    
-    
-    while (greenDotNotFound)   
         
+    while (greenDotNotFound)           
         foundGreenDot = takePicture();
         
         for c = 1:0          
@@ -235,8 +231,7 @@ function findGreenDot(robotPub)
             %Stop Robot
             sendVelmsgRob(0, 0, robotPub)
         end
-         
-        
+                 
         if (foundGreenDot) %Make BIB sound ----                
                 for c = 1:3
                     disp("---- !! Bip !! !! Bip !! !! Bip !! ---")
@@ -267,71 +262,104 @@ function foundGreenDot = takePicture()
 
     pause(1) %Delay
     
-    foundGreenDot = dotFound(img)
-   
-    
+    foundGreenDot = dotFound(img)    
 end
 
 
-function foundGreenDot = dotFound(img)
-    %m1 = imread('IMG1.JPG');
-    %imshow(m1)
-
-    %%
-    %m1g = rgb2gray(img);
-    %imshow(m1g)  
+function foundGreenDot = dotFound(RGB)
+      
+    maskedRGBImage = createMask(RGB);
+    imshow(maskedRGBImage)
+    pause(3)
     
-    blueBallParams.blueMax = 120;  % Maximum permissible deviation from pure blue
-    blueBallParams.darkMin = 30;   % Minimum acceptable darkness value
+    
+    greenThresh = 0.05; % Threshold for green detection
+    
+    rgbFrame = maskedRGBImage;
+    diffFrameGreen = imsubtract(rgbFrame(:,:,2), rgb2gray(rgbFrame)); % Get green component of the image
+    diffFrameGreen = medfilt2(diffFrameGreen, [3 3]); % Filter out the noise by using median filter
+    binFrameGreen = im2bw(diffFrameGreen, greenThresh); % Convert the image into binary image with the green objects as wh
+      
+    imshow(binFrameGreen)
+  
+    BW = binFrameGreen;
+    [H,T,R] = hough(BW,'RhoResolution',0.5,'Theta',-90:0.5:89);
+    P  = houghpeaks(H,50,'threshold',ceil(0.5*max(H(:))));
+    lines = houghlines(BW,T,R,P,'FillGap',20,'MinLength',20);
 
 
-    % Parameters for ball position and size
-    horizontalTolerance = 20;
-    sizeGoal = 70;
-    sizeTolerance = 5;
-     for i = 1:100
-        % Get latest image, ball postion, and ball size.
-        %latestImg = getColorImage(tbot);
-        latestImg = img;
+    figure(2), imshow(im), hold on
+    max_len = 0;
+    for k = 1:length(lines)
+        if abs(abs(lines(k).theta)-90) > 5 % my ugly fix to remove unwanted lines
+            xy = [lines(k).point1; lines(k).point2];
+            plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
+
+
+            % Plot beginnings and ends of lines
+            plot(xy(1,1),xy(1,2),'x','LineWidth',2,'Color','yellow');
+            plot(xy(2,1),xy(2,2),'x','LineWidth',2,'Color','red');
+
+            % Determine the endpoints of the longest line segment
+            len = norm(lines(k).point1 - lines(k).point2);
+            if ( len > max_len)
+                max_len = len;
+                xy_long = xy;
+            end
+        end
+    end
+    
+    
+    
+    %disp("green_component: " + green_component);    
         
-        [height,width] = size(latestImg);
-        [position,ballSize] = exampleHelperTurtleBotFindBlueBall(latestImg,blueBallParams);
-
-        % Initialize velocities to zero.
-        linearVel = 0; 
-        angularVel = 0;
-
-        % Left and right controls
-        if isempty(position)
-            angularVel = 0.5;
-            linearVel = 0;
-        elseif (position(1) > (width/2)-horizontalTolerance)
-            angularVel = 0.2;
-        elseif (position(1) < (width/2)+horizontalTolerance)
-            angularVel = -0.2;
-        end
-
-        % Forward and back control
-        if isempty(ballSize)
-            angularVel = 0.5;
-            linearVel = 0;
-        elseif ballSize > sizeGoal + sizeTolerance
-            linearVel = - 0.1;
-        elseif ballSize < sizeGoal - sizeTolerance
-            linearVel = 0.1;
-        end
-
-        % Send velocity commands and wait for commands to send.
-        %setVelocity(tbot,linearVel,angularVel)
-        pause(0.2)
-     end
-          
-    test = false;
-    pause(1)
-    if test
+    isGreen = false;
+    pause(3)
+    if isGreen
         disp('GOAL!'); 
         foundGreenDot = true;      
     else
         foundGreenDot = false;  
     end
+end
+
+function [BW, maskedRGBImage] = createMask(RGB)
+%createMask  Threshold RGB image using auto-generated code from colorThresholder app.
+%  [BW,MASKEDRGBIMAGE] = createMask(RGB) thresholds image RGB using
+%  auto-generated code from the colorThresholder app. The colorspace and
+%  range for each channel of the colorspace were set within the app. The
+%  segmentation mask is returned in BW, and a composite of the mask and
+%  original RGB images is returned in maskedRGBImage.
+
+% Auto-generated by colorThresholder app on 12-May-2021
+%------------------------------------------------------
+
+
+% Convert RGB image to chosen color space
+I = RGB;
+
+% Define thresholds for channel 1 based on histogram settings
+channel1Min = 0.000;
+channel1Max = 0.000;
+
+% Define thresholds for channel 2 based on histogram settings
+channel2Min = 0.000;
+channel2Max = 255.000;
+
+% Define thresholds for channel 3 based on histogram settings
+channel3Min = 0.000;
+channel3Max = 0.000;
+
+% Create mask based on chosen histogram thresholds
+sliderBW = (I(:,:,1) >= channel1Min ) & (I(:,:,1) <= channel1Max) & ...
+    (I(:,:,2) >= channel2Min ) & (I(:,:,2) <= channel2Max) & ...
+    (I(:,:,3) >= channel3Min ) & (I(:,:,3) <= channel3Max);
+BW = sliderBW;
+
+% Initialize output masked image based on input image.
+maskedRGBImage = RGB;
+
+% Set background pixels where BW is false to zero.
+maskedRGBImage(repmat(~BW,[1 1 3])) = 0;
+
 end
