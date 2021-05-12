@@ -13,7 +13,7 @@ rosinit(VmIp,'NodeHost',MyIp);
 
 
 %%
-image = imread('Shannon00.jpg');
+image = imread('ShannonNew.jpg');
 grayimage = rgb2gray(image);
 bwimage = grayimage < 0.5;
 
