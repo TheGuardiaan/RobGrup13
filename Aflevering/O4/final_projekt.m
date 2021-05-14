@@ -1,15 +1,33 @@
-%%  
+% %%  
+% Caspers IP
+
+% rosshutdown
+% clear
+% clc
+% VmIp = 'http://192.168.174.129:11311';
+% MyIp = '192.168.0.28';
+% 
+% 
+% setenv('ROS_MASTER_URI',VmIp);
+% % assuming your own ip is 192.168.1.100
+% setenv('ROS_IP',MyIp);
+% rosinit(VmIp,'NodeHost',MyIp);
+
+%%
+% Dortes IP
 rosshutdown
-clear
-clc
-VmIp = 'http://192.168.174.129:11311';
-MyIp = '192.168.0.28';
 
+clear;
+clc;
 
-setenv('ROS_MASTER_URI',VmIp);
-% assuming your own ip is 192.168.1.100
-setenv('ROS_IP',MyIp);
-rosinit(VmIp,'NodeHost',MyIp);
+myIp = "192.168.1.152"
+vmIp = "http://192.168.80.131:11311"
+
+setenv('ROS_MASTER_URI',vmIp)
+% assuming your own ip is 192.168.1.152
+setenv('ROS_IP', myIp)
+rosinit(vmIp,'NodeHost', myIp');
+
 
 
 %%
@@ -62,7 +80,7 @@ nodes = 350;
 % -- Path one drive
 path = findpathFunc(punkt_A, punkt_B, map, nodes, 1);
 controller = setController(path);
-drivePath(punkt_B, controller, robotPub); %(Goal,controller) 
+drivePath(punkt_B, controller, robotPub, map, nodes); %(Goal,controller) 
 findGreenDot(robotPub)
 
 for i = 1:1 %Use just for testing
@@ -79,7 +97,7 @@ drivePath(punkt_BC, controller2, robotPub);
 % -- Path two drive
 path2 = findpathFunc(punkt_BC, punkt_C, map, nodes, 2);
 controller2 = setController(path2);
-drivePath(punkt_C, controller2, robotPub);
+drivePath(punkt_C, controller2, robotPub, map, nodes);
 findGreenDot(robotPub);
 
 sendVelmsgRob(0,0, robotPub); %Stop Rob
@@ -95,7 +113,7 @@ end
 %%
 
 %Drive To punkt func
-function drivePath(GazeboGoal, controller, robotPub)
+function drivePath(GazeboGoal, controller, robotPub, map, nodes)
 
     %---------------
     % -- Get Rob pose [x y theta] and set GazeboInitialLocation
@@ -116,15 +134,23 @@ function drivePath(GazeboGoal, controller, robotPub)
     distanceToGoal = norm(GazeboInitialLocation - GazeboGoal');
     %---------------
     
-    
-  	%scanWorld()
-     
+         
 
     %%% Initialize the simulation loop
     sampleTime = 0.1;
     vizRate = rateControl(1/sampleTime);
     while( distanceToGoal > goalRadius )
-
+        
+        %Obstacle Detection
+        obstacleDetected = avoidObstacles(robotPub);
+        
+        if(obstacleDetected)
+           newPath = findpathFunc(GazeboCurrentPose, GazeboGoal, map, nodes, 3);
+           controller = setController(newPath);
+           drivePath(GazeboGoal, controller, robotPub, map, nodes);
+           distanceToGoal = 0; % break out of while loop to end current path
+        end
+        
         % Compute the controller outputs, i.e., the inputs to the robot
         [v, omega] = controller(GazeboCurrentPose);    
            
@@ -176,25 +202,50 @@ function path = findpathFunc(start_punkt, end_punkt, map, nodes, figNum)
         
 end
 
-function scanWorld()
-% Read scan continously
-    disp("Run scanWorld Func")
-    if ismember('/scan',rostopic('list'))
+function [a, dist] = scanWorld(robotPub)
+   if ismember('/scan',rostopic('list'))
         scansub = rossubscriber('/scan');  
-        linescan = receive(scansub); %Receive message
-        ranges = linescan.Ranges; %Extract scan
-        angles = linescan.AngleMin:linescan.AngleIncrement:linescan.AngleMax;
 
-        angleInDegrees = rad2deg(angles);
+        scan = receive(scansub); %Receive message             
+        %plot(scan);
+        % get data from scan
+        cart = readCartesian(scan);
+        
+        %Checker om scan indeholder er data
+        while(length(cart) < 200)
+            sendVelmsgRob(0, 0.5, robotPub);
+            scan = receive(scansub); %Receive message
+            cart = readCartesian(scan);
 
-        plot(angleInDegrees, ranges)
-        xlabel('Angle [Degrees]')
-        ylabel('Distance [m]')
-        saveas(gcf,'linescan.png')
+            disp("Calibraing - Angular");
+        end 
+                              
+        figure(2);
+        plot(cart(:,2), cart(:,1), '.') % note - y before x..
+        title('Cart');
 
-        disp("Ranges");
-            disp(ranges);
-    end
+        x = cart(:,2); % x-pos
+        d = cart(:,1); % depth
+
+        % Fitting one line..
+
+        % only left side
+        xleft = x(100:200);
+        dleft = d(100:200);
+        plot(xleft, dleft, '.');
+
+        mdl = fitlm(xleft,dleft);
+        coef=mdl.Coefficients.Estimate;
+
+        plot(x,d, '.'), hold on
+        plot(x, coef(1) + coef(2)*x, 'r'); 
+                 
+        a = coef(2);
+        b = coef(1);
+          
+        % Compute distance of the closest obstacle
+        dist = abs(b)/(sqrt(a.^2+1));   
+   end
 end
 
 function controllerReturn = setController(path)
@@ -301,9 +352,9 @@ function foundGreenDot = dotFound(RGB, robotPub)
         %disp("center: " + y);
         
         %----
-        % Mangler at finde punktet på billedet. som skal sendes med drivFountOnDot()
+        % Mangler at finde punktet på billedet. som skal sendes med driveInFrontOfDot()
         %----
-        %drivFountOnDot(centers, robotPub); 
+        %driveInFrontOfDot(centers, robotPub); 
                
         %Rob køre 40 cm tæt på væg
         wallPositionClose(dist, robotPub);
@@ -368,61 +419,19 @@ maskedRGBImage(repmat(~BW,[1 1 3])) = 0;
 end
 
 function [a, dist] =  findWall(robotPub, mode)
-    if ismember('/scan',rostopic('list'))
-        scansub = rossubscriber('/scan');  
-
-        scan = receive(scansub); %Receive message             
-        %plot(scan);
-        % get data from scan
-        cart = readCartesian(scan);
-        
-        %Checker om scan indeholder er data
-        while(length(cart) < 200)
-            sendVelmsgRob(0, 0.5, robotPub);
-            scan = receive(scansub); %Receive message
-            cart = readCartesian(scan);
-
-            disp("Calibraing - Angular");
-        end 
-                              
-        figure(2);
-        plot(cart(:,2), cart(:,1), '.') % note - y before x..
-        title('Cart');
-
-        x = cart(:,2); % x-pos
-        d = cart(:,1); % depth
-
-        % Fitting one line..
-
-        % only left side
-        xleft = x(100:200);
-        dleft = d(100:200);
-        plot(xleft, dleft, '.');
-
-        mdl = fitlm(xleft,dleft);
-        coef=mdl.Coefficients.Estimate;
-
-        plot(x,d, '.'), hold on
-        plot(x, coef(1) + coef(2)*x, 'r'); 
-                 
-        a = coef(2);
-        b = coef(1);
-          
-        % Compute distance of the closest obstacle
-        dist = abs(b)/(sqrt(a.^2+1));        
+    [a, dist] = scanWorld(robotPub);
                      
-        %disp("Hældnigns coef - a: " + a) 
-        %disp("Skæring punkt - b: " + b)  
-        %disp("Længeden til væg: " + dist)
-        %disp("----")
-        
-        if mode == true
-            wallPosition(a, robotPub);
-        elseif mode == false
-            wallPositionClose(dist, robotPub);
-        end
-                   
+    %disp("Hældnigns coef - a: " + a) 
+    %disp("Skæring punkt - b: " + b)  
+    %disp("Længeden til væg: " + dist)
+    %disp("----")
+
+    if mode == true
+        wallPosition(a, robotPub);
+    elseif mode == false
+        wallPositionClose(dist, robotPub);
     end
+    
 end
 
 function  wallPosition(a, robotPub)
@@ -473,7 +482,7 @@ function  wallPositionClose(dist, robotPub)
 end
 
 
-function drivFountOnDot(centers, robotPub)
+function driveInFrontOfDot(centers, robotPub)
     disp("centers: " + centers);
     x = 500; % Bruges til at teste med da jeg ikke kan finde x i centers...
     
@@ -523,4 +532,41 @@ function turn90Degre(robotPub)
         sendVelmsgRob(0, -1, robotPub);
         pause(0.3);
     end 
+end
+
+function obstacleDetected = avoidObstacles(robotPub)
+
+%     drive path
+%     scan for obstacles
+%     if obstacles found in front of robot
+%         calculate distance to obstacle
+%         calculate angle or make new path?
+%         drive new path
+%         make new path to path goal 
+%     end
+      
+   [a, dist] = scanWorld(robotPub); 
+   obstacleDetected = false;
+   
+   %checks if too close to an obstacle
+   if (dist < 0.50)
+       obstacleDetected = true;
+       sendVelmsgRob(0, 0, robotPub); %Stop robot
+       [a, dist] = scanWorld(robotPub); %Scan again to check if moving obstacle
+       if(dist >= 0.50)  % if obstacle moved
+           obstacleDetected = false;
+           return;
+       end       
+      
+       while(dist < 0.50)
+            sendVelmsgRob(0, 0.2, robotPub); % turn right 90 degrees
+            pause(0.3);
+            sendVelmsgRob(0.3, 0, robotPub); % drive forward      
+            pause(0.3);   
+            sendVelmsgRob(0, -0.2, robotPub); % turn left 90 degrees
+            pause(0.3);
+            [a, dist] = scanWorld(robotPub); %Scan again to check if path is clear            
+       end   
+    
+   end
 end
