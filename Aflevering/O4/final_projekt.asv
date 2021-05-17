@@ -213,8 +213,8 @@ function [a, dist] = scanWorld(robotPub)
         cart = readCartesian(scan);
         
         if (length(cart) >= 200)  % Scan receive enough data to calculate distance (den ser noget foran sig)
-            %scan = receive(scansub); %Receive message
-            %cart = readCartesian(scan);
+            scan = receive(scansub); %Receive message
+            cart = readCartesian(scan);
             x = cart(:,2); % x-pos
             d = cart(:,1); % depth
 
