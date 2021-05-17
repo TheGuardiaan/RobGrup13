@@ -1,3 +1,4 @@
+
 % %%  
 % Caspers IP
 
@@ -28,6 +29,20 @@ setenv('ROS_MASTER_URI',vmIp)
 setenv('ROS_IP', myIp)
 rosinit(vmIp,'NodeHost', myIp');
 
+%%
+% %Test turning 90 degrees
+% robotPub = rospublisher('/mobile_base/commands/velocity');
+% sendVelmsgRob(0, 2.6, robotPub); % turn right 90 degrees
+% pause(2);
+% disp("stop")
+
+
+%%
+% %Test
+% robotPub = rospublisher('/mobile_base/commands/velocity');
+% sendVelmsgRob(0, -2.6, robotPub); % turn right 90 degrees
+% pause(2);
+% disp("stop")
 
 
 %%
@@ -213,21 +228,21 @@ function [a, dist] = scanWorld(robotPub)
         cart = readCartesian(scan);
         
         if (length(cart) >= 200)  % Scan receive enough data to calculate distance (den ser noget foran sig)
-            scan = receive(scansub); %Receive message
-            cart = readCartesian(scan);
+            %scan = receive(scansub); %Receive message
+            %cart = readCartesian(scan);
             x = cart(:,2); % x-pos
             d = cart(:,1); % depth
 
             % only left side
             xleft = x(100:200);
             dleft = d(100:200);
-            plot(xleft, dleft, '.');
+            %plot(xleft, dleft, '.');
 
             mdl = fitlm(xleft,dleft);
             coef=mdl.Coefficients.Estimate;
 
-            plot(x,d, '.'), hold on
-            plot(x, coef(1) + coef(2)*x, 'r'); 
+            %plot(x,d, '.'), hold on
+            %plot(x, coef(1) + coef(2)*x, 'r'); 
 
             a = coef(2);
             b = coef(1);
@@ -573,26 +588,31 @@ function obstacleDetected = avoidObstacles(robotPub)
    obstacleDetected = 0;
    disp("Dist: " + dist)
    %checks if too close to an obstacle
-   if (dist < 0.50)
-       disp("dist < 0.50")   
+   if (dist < 1)
+       disp("dist < 1 meter")   
        obstacleDetected = 1;
        sendVelmsgRob(0, 0, robotPub); %Stop robot
+       pause(2);
        [a, dist] = scanWorld(robotPub); %Scan again to check if moving obstacle
-       if(dist >= 0.50)  % if obstacle moved
+       if(dist >= 1)  % if obstacle moved
            obstacleDetected = 0;
            return;
        end       
       
-       while(dist < 0.50)
-            disp(" in while loop, dist < 0.50")
-            sendVelmsgRob(0, 0.2, robotPub); % turn right 90 degrees
-            pause(2);
-            sendVelmsgRob(0.3, 0, robotPub); % drive forward      
-            pause(2);   
-            sendVelmsgRob(0, -0.2, robotPub); % turn left 90 degrees
-            pause(2);
+       while(dist < 1)
+            disp(" in while loop, dist < 1 meter")
+            sendVelmsgRob(0, 2.6, robotPub); % turn right 90 degrees
+            pause(1);
+            sendVelmsgRob(1, 0, robotPub); % drive forward      
+            pause(1);   
+            sendVelmsgRob(0, -2.6, robotPub); % turn left 90 degrees
+            pause(1);
             [a, dist] = scanWorld(robotPub); %Scan again to check if path is clear            
        end   
     
    end
+  
 end
+
+
+
