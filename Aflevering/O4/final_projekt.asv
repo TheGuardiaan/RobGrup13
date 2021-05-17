@@ -58,7 +58,7 @@ punkt_C = [26.5 2];
 nodes = 350;
 
 %Bruges ti lat test findGreenDot - kamrart og findwall...
-findGreenDot(robotPub);
+%findGreenDot(robotPub);
 
 
 % -- Path one drive
@@ -227,10 +227,11 @@ function findGreenDot(robotPub)
         
     while (greenDotNotFound)           
         foundGreenDot = takePicture(robotPub);
-        %takePicture(robotPub);
+        takePicture(robotPub);
         for c = 1:0          
             sendVelmsgRob(0, 0.5, robotPub)
-            pause(1)           
+            pause(1)
+            
             %Stop Robot
             sendVelmsgRob(0, 0, robotPub)
         end
@@ -324,7 +325,6 @@ function foundGreenDot = dotFound(RGB, robotPub)
         %Rob køre 40 cm tæt på væg
         wallPositionClose(dist, robotPub);
         
-        
         for i = 1:2 %Turn rob 180 degres
             turn90Degre(robotPub);
         end
@@ -333,7 +333,8 @@ function foundGreenDot = dotFound(RGB, robotPub)
         pause(3); 
         
     else
-        disp("Not Found Green Dot");       
+        disp("Not Found Green Dot");
+        
         %Rob Turn Round it self - Linear, Angular
         sendVelmsgRob(0, 0.5, robotPub);
         foundGreenDot = false;     
@@ -444,7 +445,7 @@ end
 function  wallPosition(a, robotPub)
 
     %disp("AngToWall: " + a);
-    angThresholdMin = -0.1;  
+    angThresholdMin = -0.003;  
     angThresholdMax = 0.1;
 
         
@@ -471,7 +472,7 @@ end
 function  wallPositionClose(dist, robotPub)
 
     disp("dist To Wall: " + dist);
-    distThresholdMin = 0.4;  
+    distThresholdMin = 0.7;  
            
     if((dist > distThresholdMin))
         if (dist > distThresholdMin)
@@ -483,8 +484,7 @@ function  wallPositionClose(dist, robotPub)
             %Stop Rob
             sendVelmsgRob(0, 0, robotPub);
         end
-        mode = false;
-        findWall(robotPub, mode);       
+        findWall(robotPub, false);       
     end
       
 end
@@ -533,9 +533,8 @@ function drivFountOnDot(robotPub)
                 pause(1);
             for i = 1:5 % Turn the robot 90 degrees to the left
                 sendVelmsgRob(0, -0.5, robotPub);
-                pause(1);               
+                pause(1);
             end 
-            findWall(robotPub, true);
         end
 
         if (x > angThresholdMax)
@@ -548,9 +547,8 @@ function drivFountOnDot(robotPub)
                 pause(1);
             for i = 1:5 % Turn the robot 90 degrees to the left
                 sendVelmsgRob(0, 0.5, robotPub);
-                pause(1);            
+                pause(1);
             end 
-            findWall(robotPub, true);
         end
         
         
