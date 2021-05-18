@@ -17,13 +17,21 @@ rosinit(VmIp,'NodeHost',MyIp);
 
 %%
 
-load('offlineSlamData.mat');
+%load('offlineSlamData.mat');
 
 
 %%
 %image = imread('Shannon00.jpg');
-I = imread('Shannon.jpg');
-imshow(I)
+image = imread('Shannon.jpg');
+grayimage = rgb2gray(image);
+bwimage = grayimage < 0.5;
+
+map = binaryOccupancyMap(bwimage,20.8);
+%Sæt vædien ned = Map mindre
+%Sæt vædien op = Map større
+%Reslusion til 21 for at scalere 2D map til 3D map som cirka er 54m
+%show(map)
+
 %%
 maxLidarRange = 8;
 mapResolution = 20;
