@@ -46,17 +46,14 @@ punkt_BC = [2.5 6.7];
 punkt_C = [26 2.2];
 
 %%
-nodes = 750;
+nodes = 1000;
 numUpdates = 32;
-
-avoidObstaclesMode = false;%Sæt den til true hvis den skal bruges
-
 
 %Find Rob And Driv to punktA
 LocalizationPose = MonteCarlo_Localization_Algorithm(mapLocalization, robotPub, numUpdates);
 
 LocalizationPoseX = LocalizationPose(1:1);
-LocalizationPoseY = LocalizationPose(1:2)+2;
+LocalizationPoseY = LocalizationPose(2:2);
 punkt_Localization = [LocalizationPoseX LocalizationPoseY];
 
 disp("LocalizationPoseX:" + LocalizationPoseX);
@@ -64,20 +61,20 @@ disp("LocalizationPoseY:" + LocalizationPoseY);
 
 path_Localization = findpathFunc(punkt_Localization, punkt_A, map, nodes);
 controller_Start = setController(path_Localization);
-drivePath(punkt_A, controller_Start, robotPub, odom, LocalizationPose, avoidObstaclesMode); %(Goal,controller) 
+drivePath(punkt_A, controller_Start, robotPub, odom, LocalizationPose); %(Goal,controller) 
 disp("LocalizationPose:" + LocalizationPose);
 
 turn90DegreL(robotPub);
 turn90DegreL(robotPub);
 
 
-%punkt_A = LocalizationPose(1:1, 2:2);
+%punkt_A = LocalizationPose(1:2, 2:2);
 
 %%
 % -- Path one drive
 path = findpathFunc(punkt_A, punkt_B, map, nodes);
 controller = setController(path);
-drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode);
+drivePath(punkt_B, controller, robotPub, odom, LocalizationPose);
 findGreenDot(robotPub);
 
 disp("---- Path 1 ---")
@@ -86,13 +83,13 @@ pause(2)
 % -- Path BC drive
 path3 = findpathFunc(punkt_B, punkt_BC, map, nodes);
 controller3 = setController(path3);
-drivePath(punkt_BC, controller3, robotPub, odom, LocalizationPose, avoidObstaclesMode);
+drivePath(punkt_BC, controller3, robotPub, odom, LocalizationPose);
 
 
 % -- Path two drive
 path2 = findpathFunc(punkt_BC, punkt_C, map, nodes);
 controller2 = setController(path2);
-drivePath(punkt_C, controller2, robotPub, odom, LocalizationPose, avoidObstaclesMode);
+drivePath(punkt_C, controller2, robotPub, odom, LocalizationPose);
 findGreenDot(robotPub);
 
 sendVelmsgRob(0,0, robotPub); %Stop Rob
@@ -102,7 +99,7 @@ pause(2)
 
 %%
 %Drive To punkt func
-function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode)
+function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose)
     %LocalizationPose = [0,0,0]; %Test
 
     %---------------
@@ -122,7 +119,7 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
 
     GazeboCurrentPose = LocalizationPose;
     
-    GazeboInitialLocation = LocalizationPose(1:1,2:2);
+    GazeboInitialLocation = LocalizationPose(1:1,1:2);
     disp("GazeboInitialLocation: " + GazeboInitialLocation)
     
     OdomPose = [0,0,0];
@@ -138,10 +135,8 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
     while( distanceToGoal > goalRadius )
     
         %Obstacle Detection
-        if avoidObstaclesMode()
-            avoidObstacles(robotPub);  
-            disp("Back in DrivePath while loop")
-        end
+        %avoidObstacles(robotPub);  
+        %disp("Back in DrivePath while loop")
         
         
         % Compute the controller outputs, i.e., the inputs to the robot
@@ -185,7 +180,8 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
         
         
         x = GazeboCurrentPose(1:1);
-        y = GazeboCurrentPose(2:2);
+        y = GazeboCurrentPose(1:2);
+        %theta = GazeboCurrentPose(2:2);
         
         disp("GazeboCurrentPoseX: " + x);
         disp("GazeboCurrentPoseY: " + y);
@@ -209,7 +205,6 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
         disp("DistanceToGoal: " + distanceToGoal);
         waitfor(vizRate);
     end
-    avoidObstaclesMode(false);
 end
 
 %%
@@ -726,9 +721,9 @@ function avoidObstacles(robotPub)
    disp("Dist: " + dist)
    %checks if too close to an obstacle
 
-   minDist = 0.7;
-   distanceThresholdMin = 0.4;
-   distanceThresholdMax = 0.7;
+   minDist = 1;
+   distanceThresholdMin = 0.7;
+   distanceThresholdMax = 1;
 
    if (dist < minDist)
        disp("dist < 1 meter")
