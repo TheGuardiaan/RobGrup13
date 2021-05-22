@@ -51,8 +51,6 @@ punkt_C = [26 2.2];
 nodes = 350;
 numUpdates = 35;
 
-
-distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
 avoidObstaclesMode = false;%Sæt den til true hvis den skal bruges
 
 % Test avoidObstacles-
@@ -76,38 +74,34 @@ punkt_Localization = [LocalizationPoseX LocalizationPoseY];
 
 path_Localization = findpathFunc(punkt_Localization, punkt_A, map, nodes);
 controller_Start = setController(path_Localization);
-drivePath(punkt_A, controller_Start, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode); %(Goal,controller) 
+drivePath(punkt_A, controller_Start, robotPub, odom, LocalizationPose, avoidObstaclesMode); %(Goal,controller) 
 disp("LocalizationPose:" + LocalizationPose);
 
 for i = 1:3
-    turn90DegreR(robotPub);
+    turn90DegreL(robotPub);
 end
 
 
 %%
 % -- Path one drive
-distMode = true; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
-
 path = findpathFunc(punkt_A, punkt_B, map, nodes);
 controller = setController(path);
-drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode);
+drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode);
 findGreenDot(robotPub);
 
 disp("---- Path 1 ---")
 pause(2)
 
 % -- Path BC drive
-distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
-
 path3 = findpathFunc(punkt_B, punkt_BC, map, nodes);
 controller3 = setController(path3);
-drivePath(punkt_BC, controller3, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode);
+drivePath(punkt_BC, controller3, robotPub, odom, LocalizationPose, avoidObstaclesMode);
 
 
 % -- Path two drive
 path2 = findpathFunc(punkt_BC, punkt_C, map, nodes);
 controller2 = setController(path2);
-drivePath(punkt_C, controller2, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode);
+drivePath(punkt_C, controller2, robotPub, odom, LocalizationPose, avoidObstaclesMode);
 findGreenDot(robotPub);
 
 sendVelmsgRob(0,0, robotPub); %Stop Rob
@@ -162,7 +156,7 @@ end
 
 %%
 %Drive To punkt func
-function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode)
+function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode)
     
     GazeboCurrentPose = LocalizationPose;
     %disp("LocalizationPose: " + GazeboCurrentPose);
@@ -172,7 +166,7 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
     
     odomPose = [0,0,0];   
     
-    goalRadius = 0.7;
+    goalRadius = 0.5;
     distanceToGoal = norm(GazeboInitialLocation - GazeboGoal');
     %---------------
     
@@ -182,12 +176,6 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
     while( distanceToGoal > goalRadius )
     
         %Obstacle Detection
-          
-        if ((distanceToGoal < 8) && (distMode == true))
-           avoidObstaclesMode = true; 
-           distMode = false;
-        end
-        
         if avoidObstaclesMode()
             scanWorld(robotPub, true);
         end
@@ -575,7 +563,7 @@ function foundGreenDot = dotFound(RGB, robotPub)
     else
         %disp("Not Found Green Dot");       
         %Rob Turn Round it self - Linear, Angular
-        turn15DegreR(robotPub);
+        turn15Degre(robotPub);
         %sendVelmsgRob(0, 0.5, robotPub);
         foundGreenDot = false;     
     end       
@@ -848,93 +836,4 @@ end
 
 
 
-
-
-
-function avoidObstaclesXXX(robotPub)
-
-   disp("In obstacleDetected function")
-   [dist, enoughDataForCart] = scanWorld(robotPub); 
-   if(enoughDataForCart == false)
-       disp("enoughDataForCart = false" + enoughDataForCart)
-       return;
-   end
-
-   disp("Dist: " + dist)
-   %checks if too close to an obstacle
-
-   minDist = 0.7;
-   distanceThresholdMin = 0.4;
-   distanceThresholdMax = 0.7;
-
-   if (dist < minDist)
-       disp("dist < 1 meter")
-       sendVelmsgRob(0, 0, robotPub); %Stop robot
-       [dist] = scanWorld(robotPub); %Scan again to check if moving obstacle
-
-       findWall(robotPub, true);% Look at wall
-       
-       turn90DegreR(robotPub);
-       while(dist < minDist)
-            disp(" in while loop, dist < 1 meter")
-
-            if ((dist > distanceThresholdMin) && (dist < distanceThresholdMax))
-                sendVelmsgRob(0.5, 0, robotPub);
-                disp("Distance til væg: " + dist)
-
-            elseif(dist < distanceThresholdMin) % Distance to Small
-                sendVelmsgRob(0.2, 0.1, robotPub); 
-                disp("Distance til væg: " + dist)
-            end
-            [dist, enoughDataForCart] = scanWorld(robotPub); 
-
-            if(enoughDataForCart == false)
-                disp("enoughDataForCart = false" + enoughDataForCart)
-                driveForward(robotPub)
-                turn90DegreL(robotPub);
-                return;
-            end
-
-       end
-   end
-end
-
-function [dist, enoughDataForCart] = scanWorldXXX(robotPub)
-   if ismember('/scan',rostopic('list'))
-        scansub = rossubscriber('/scan');  
-
-        scan = receive(scansub); %Receive message             
-                    
-        cart = readCartesian(scan); %extract cartesian coordinates from scan
-        
-        if (length(cart) >= 200)  % Scan receive enough data to calculate distance (den ser noget foran sig)
-            %scan = receive(scansub); %Receive message
-            %cart = readCartesian(scan);
-            x = cart(:,2); % x-pos
-            d = cart(:,1); % depth
-
-            % only left side
-            xleft = x(100:200);
-            dleft = d(100:200);
-            %plot(xleft, dleft, '.');
-
-            mdl = fitlm(xleft,dleft);
-            coef=mdl.Coefficients.Estimate;
-
-            %plot(x,d, '.'), hold on
-            %plot(x, coef(1) + coef(2)*x, 'r'); 
-
-            a = coef(2);
-            b = coef(1);
-
-            % Compute distance of the closest obstacle
-            dist = abs(b)/(sqrt(a.^2+1));
-            enoughDataForCart = true;
-        else
-            dist = 10;
-            enoughDataForCart = false;
-        end
-          
-   end
-end
 

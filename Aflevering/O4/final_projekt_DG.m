@@ -30,16 +30,6 @@ resetRobotPose = rospublisher('/mobile_base/commands/reset_odometry');
 msg = rosmessage(resetRobotPose);
 send(resetRobotPose, msg)
 
-%% -----------------
-%Set new startpose - Virker ikke - Prøv med - "Localize TurtleBot Using Monte Carlo Localization"
-            %robotInitialLocation = punkt_A;
-            %initialOrientation = 0;
-
-            %GazeboInitialLocation = robotInitialLocation;
-            %GazeboCurrentPose = [robotInitialLocation initialOrientation];
-% ---------------
-
-
 %% Nulstil rob place
 %nodes = 550;
 
@@ -70,20 +60,17 @@ punkt_C = [26 2.2];
 
 %%
 % test avoid obstacles
-nodes = 350;
-
-% -- Path one drive
-path = findpathFunc(punkt_A,punkt_B, map, nodes, 1);
-controller = setController(path);
-drivePath(punkt_B, controller, robotPub, map, nodes, odom); %(Goal,controller) 
-findGreenDot(robotPub);
-% sendVelmsgRob(1,0, robotPub);
-% while 1 
-%     avoidObstacles(robotPub);
-% end
-
-disp("---- Path 1 ---")
-pause(2)
+% nodes = 350;
+% 
+% % -- Path one drive
+% path = findpathFunc(punkt_A,punkt_B, map, nodes, 1);
+% controller = setController(path);
+% drivePath(punkt_B, controller, robotPub, map, nodes, odom); %(Goal,controller) 
+% findGreenDot(robotPub);
+% 
+% 
+% disp("---- Path 1 ---")
+% pause(2)
 
 %%
 nodes = 350;
