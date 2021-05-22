@@ -48,9 +48,11 @@ punkt_C = [26 2.2];
 
 %turnRob(robotPub, odom, 35, "R");
 
-nodes = 350;
-numUpdates = 35;
+nodes = 550;
+numUpdates = 34;
 
+
+findGreenDot(robotPub);
 
 distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
 avoidObstaclesMode = false;%Sæt den til true hvis den skal bruges
@@ -61,7 +63,7 @@ avoidObstaclesMode = false;%Sæt den til true hvis den skal bruges
 % punk_Test = [4.2 23];
 % path = findpathFunc(punk_Test, punkt_B, map, nodes);
 % controller = setController(path);
-% drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode); %(Goal,controller) 
+% drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode, true); %(Goal,controller) 
 % -----------------------------
 
 %Find Rob And Driv to punktA
@@ -189,7 +191,8 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
         end
         
         if avoidObstaclesMode()
-            scanWorld(robotPub, true);
+           [dist, a] =  scanWorld(robotPub);
+           disp("[dist, a]: " + dist + " " + a);
         end
      
         % Get the robot's velocity using controller inputs
@@ -250,36 +253,34 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
     avoidObstaclesMode(false);
 end
 
-function avoidObstacles(robotPub, dist)
+function avoidObstacles(robotPub)
     disp("In obstacleDetected function")
-    disp("dist" + dist);
         
     findWall(robotPub, true);% Look at wall
     disp("FindWall");
-    pause(1);
+    pause(0.5);
     
     %turnRob(robotPub, odom, 90, "R");
     turn90DegreR(robotPub);
     
-    pause(1);
+    pause(0.5);
     
-    [dist, a] = scanWorld(robotPub, false);
-    disp("dist: " + dist);
+    [dist, a] = scanWorld(robotPub);
+    disp("2 - dist:" + dist)
     pause(1);
     
     driveForward(robotPub);
-    pause(1);
+    pause(0.5);
     turn90DegreL(robotPub);
-    pause(1);
+    pause(0.5);
     
-    [dist, a] = scanWorld(robotPub, false);
+    [dist, a] = scanWorld(robotPub);
     if dist < 1
-        scanWorld(robotPub, true);
-    end  
-   
+        scanWorld(robotPub);    
+    end   
 end
 
-function [dist, a] = scanWorld(robotPub, mode)
+function [dist, a] = scanWorld(robotPub)
    if ismember('/scan',rostopic('list'))
         scansub = rossubscriber('/scan');  
 
@@ -309,21 +310,22 @@ function [dist, a] = scanWorld(robotPub, mode)
 
             % Compute distance of the closest obstacle
             dist = abs(b)/(sqrt(a.^2+1));
-            
+            disp("1 - dist:" + dist);
             
             minDist = 1;
 
-            if (dist < minDist)
-                if mode
-                    disp("Dist: " + dist)
+            if (dist < minDist)  
                     sendVelmsgRob(0, 0, robotPub); %Stop robot
-                    avoidObstacles(robotPub, dist);          
-                end
-            end
-            %enoughDataForCart = true;
-            return;
-        end
-          
+                    avoidObstacles(robotPub);  
+            else 
+                dist = 10;
+                a = 0;
+            end 
+            
+        else
+         dist = 10;
+         a = 0;
+        end 
    end
 end
 
@@ -501,8 +503,7 @@ end
 
 
 function foundGreenDot = takePicture(robotPub)
-    takePictureDebug();
-    pause(1);
+    %takePictureDebug();
     % --- Debug ---
     disp("Take Picture");
     
@@ -518,9 +519,9 @@ function foundGreenDot = takePicture(robotPub)
     imgraw = receive(imsub); % a serialised image
     img = readImage(imgraw); % decode image    
         
-    figure(4);
-    imshow(img);
-    pause(1); %Delay
+    %figure(4);
+    %imshow(img);
+    pause(0.5); %Delay
 
     foundGreenDot = dotFound(img, robotPub);
 end
@@ -543,84 +544,246 @@ end
 
 function foundGreenDot = dotFound(RGB, robotPub)      
 
+    figure(3);
     imshow(RGB);
-    %pause(2);
+    RGB = takePictureDebug();
+    %pause(1);
     BW = createMask(RGB);
-
-    imshow(BW);  
-    
+    imshow(BW);
+      
     stats = regionprops('table',BW,'Centroid');
     
-    if(stats.Centroid )
-        disp("!! - Found Green DOT - !!");             
-        pause(1);       
-        foundGreenDot = true;        
-        [a, dist] = findWall(robotPub, true); 
-        %----
-        % Find green Dot and drive
-        %----
-        drivFountOnDot(robotPub); 
-                     
-        %pause(20);
-        %Rob køre 40 cm fra væg
-        wallPositionClose(dist, robotPub);
-                
-        for i = 1:3 %Turn rob 180 degres
-            turn90DegreL(robotPub);
+    if(stats.Centroid)   
+        
+        circleFound = findCircle(BW);
+        if(circleFound) 
+        
+            disp("!! - Found Green DOT - !!");             
+            pause(0.5);       
+            foundGreenDot = true;        
+            [a, dist] = findWall(robotPub, true); 
+            disp("FindWall");
+            pause(0.5);
+
+            %----
+            % Find green Dot and drive
+            %----
+            drivFountOnDot(robotPub); 
+
+            %pause(20);
+            %Rob køre 40 cm fra væg
+            wallPositionClose(dist, robotPub);
+
+            for i = 1:5 %Turn rob 180 degres
+                turn90DegreR(robotPub);       
+                pause(0.1);
+            end
+            findWall(robotPub, true); 
+
+            disp("!!----STOP---!!!" );                            
+            pause(2); 
+         else
+            disp("Not Found Green Dot");       
+            %Rob Turn Round it self - Linear, Angular
+            turn15DegreL(robotPub);
+            foundGreenDot = false;   
         end
-        
-        disp("!!----STOP---!!!" );                            
-        pause(2); 
-        
     else
-        %disp("Not Found Green Dot");       
+        disp("Not Found Green Dot");       
         %Rob Turn Round it self - Linear, Angular
-        turn15DegreR(robotPub);
-        %sendVelmsgRob(0, 0.5, robotPub);
+        turn15DegreL(robotPub);
         foundGreenDot = false;     
     end       
 end
 
 
-function [BW, maskedRGBImage] = createMask(RGB)
-%createMask  Threshold RGB image using auto-generated code from colorThresholder app.
-%  [BW,MASKEDRGBIMAGE] = createMask(RGB) thresholds image RGB using
-%  auto-generated code from the colorThresholder app. The colorspace and
-%  range for each channel of the colorspace were set within the app. The
-%  segmentation mask is returned in BW, and a composite of the mask and
-%  original RGB images is returned in maskedRGBImage.
+function circleFound = findCircle(A)
+    Rmin = 10;
+    Rmax = 100;
 
-% Auto-generated by colorThresholder app on 12-May-2021
-%------------------------------------------------------
+    [centersBright, radiiBright] = imfindcircles(A,[Rmin Rmax],'ObjectPolarity','bright');
+    [centersDark, radiiDark] = imfindcircles(A,[Rmin Rmax],'ObjectPolarity','dark');
+    viscircles(centersBright, radiiBright,'Color','b');
 
+        if centersBright > 0
+           circleFound = true; 
 
-% Convert RGB image to chosen color space
-I = RGB;
+           disp(centersBright);
+           return;
+        end
 
-% Define thresholds for channel 1 based on histogram settings
-channel1Min = 0.000;
-channel1Max = 0.000;
-
-% Define thresholds for channel 2 based on histogram settings
-channel2Min = 0.000;
-channel2Max = 255.000; %255.000
-
-% Define thresholds for channel 3 based on histogram settings
-channel3Min = 0.000;
-channel3Max = 0.000;
-
-% Create mask based on chosen histogram thresholds
-sliderBW = (I(:,:,1) >= channel1Min ) & (I(:,:,1) <= channel1Max) & ...
-    (I(:,:,2) >= channel2Min ) & (I(:,:,2) <= channel2Max) & ...
-    (I(:,:,3) >= channel3Min ) & (I(:,:,3) <= channel3Max);
-BW = sliderBW;
-
-% Initialize output masked image based on input image.
-maskedRGBImage = RGB;
-
-% Set background pixels where BW is false to zero.
-maskedRGBImage(repmat(~BW,[1 1 3])) = 0;
+    circleFound = false; 
+    disp("circleFound: " + circleFound);
 end
+
+function  wallPosition(a, robotPub)
+
+    %disp("AngToWall: " + a);
+    angThresholdMin = -0.1;  
+    angThresholdMax = 0.1;
+        
+    if((a > angThresholdMax) || (a < angThresholdMin))
+        if (a > angThresholdMax)
+            disp("L - AngToWall: " + a);
+            %Rob Turn Round it self - Linear, Angular
+            sendVelmsgRob(0, -0.3, robotPub);
+            disp("----");
+        elseif (a < angThresholdMin)
+            disp("R - AngToWall: " + a);
+            %Rob Turn Round it self - Linear, Angular
+            sendVelmsgRob(0, 0.3, robotPub);
+            disp("----");
+        else
+            %Stop Rob
+            sendVelmsgRob(0, 0, robotPub);
+        end
+        findWall(robotPub, true);  
+    end  
+end
+
+function  wallPositionClose(dist, robotPub)
+
+    disp("dist To Wall: " + dist);
+    distThresholdMin = 0.5;  
+           
+    if((dist > distThresholdMin))
+        if (dist > distThresholdMin)
+            %disp("1 - Dist ToWall: " + dist);
+            %Rob Turn Round it self - Linear, Angular
+            sendVelmsgRob(0.2, 0, robotPub);
+            disp("----")
+        else
+            %Stop Rob
+            sendVelmsgRob(0, 0, robotPub);
+        end
+        mode = false;
+        findWall(robotPub, mode);       
+    end     
+end
+
+
+function drivFountOnDot(robotPub)
+
+    pause(0.5);
+    RGB = takePictureDebug();
+    figure(3);
+    imshow(RGB);
+    
+    pause(0.5);
+    BW_new = createMask(RGB);
+    imshow(BW_new);  
+    
+    stats = regionprops('table',BW_new,'Centroid');  
+    if(stats.Centroid)         
+        allCentroids = [stats.Centroid];
+        xCentroids = allCentroids(1:2:end); 
+        disp("xCentroids: " + xCentroids);
+    else
+        disp("stats.Centroid Not found: ");       
+        findGreenDot(robotPub);       
+        %sendVelmsgRob(0.5, 0, robotPub);
+        %pause(0.5);
+        return;
+    end
+  
+
+   angThresholdMin = 300;  
+    angThresholdMax = 360;
+      
+    
+    if((xCentroids > angThresholdMax) || (xCentroids < angThresholdMin))    
+        %pause(2);
+        if (xCentroids < angThresholdMin)
+            disp("x < angThresholdMin");
+            turn90DegreL(robotPub);
+            disp("turn90DegreL");
+            pause(1);
+            if xCentroids < 50
+                destinFromDot = 3;
+            elseif xCentroids > 200
+                destinFromDot = 2;
+            else
+                destinFromDot = 1;
+            end
+            
+            for i = 1:destinFromDot
+                sendVelmsgRob(0.5, 0, robotPub);
+                pause(1);
+            end
+            
+            turn90DegreR(robotPub)
+            findWall(robotPub, true);
+        end
+
+        if (xCentroids > angThresholdMax)
+            disp("x > angThresholdMax");
+            turn90DegreR(robotPub)
+disp("turn90DegreR");
+            pause(1);
+            if xCentroids > 550
+                destinFromDot = 3;
+            elseif xCentroids > 450
+                destinFromDot = 2;
+            elseif xCentroids < 450
+                destinFromDot = 1;
+            else
+                destinFromDot = 1;
+            end
+            
+            for i = 1:destinFromDot
+                sendVelmsgRob(0.5, 0, robotPub);
+                pause(1);
+            end
+            turn90DegreL(robotPub)
+            findWall(robotPub, true);
+        end              
+    else
+        takePicture(robotPub);
+    end
+
+end
+
+
+function turn90DegreR(robotPub)
+    sendVelmsgRob(0, -2.6, robotPub);
+
+end
+
+function turn90DegreL(robotPub)
+    % Turn the robot 90 degrees to the Right
+    sendVelmsgRob(0, 2.6, robotPub);
+
+end
+
+function turn15DegreR(robotPub)
+    for i = 1:3 % Turn the robot 15 degrees to the left
+        sendVelmsgRob(0, -0.5, robotPub);
+        pause(0.2);
+    end 
+end
+
+
+function turn15DegreL(robotPub)
+    for i = 1:1 % Turn the robot 5 degrees to the left
+        sendVelmsgRob(0, 1, robotPub);
+        pause(0.1);
+    end 
+end
+
+function turn5DegreR(robotPub)
+    for i = 1:1 % Turn the robot 5 degrees to the left
+        sendVelmsgRob(0, -1, robotPub);
+        pause(0.1);
+    end 
+end
+
+function driveForward(robotPub)
+     for i = 1:2 % Turn the robot 5 degrees to the left
+        sendVelmsgRob(1, 0, robotPub);
+        pause(0.3);
+     end
+end
+
 
 function [a, dist] =  findWall(robotPub, mode)
     if ismember('/scan',rostopic('list'))
@@ -679,177 +842,48 @@ function [a, dist] =  findWall(robotPub, mode)
     end
 end
 
-function  wallPosition(a, robotPub)
+function [BW, maskedRGBImage] = createMask(RGB)
+%createMask  Threshold RGB image using auto-generated code from colorThresholder app.
+%  [BW,MASKEDRGBIMAGE] = createMask(RGB) thresholds image RGB using
+%  auto-generated code from the colorThresholder app. The colorspace and
+%  range for each channel of the colorspace were set within the app. The
+%  segmentation mask is returned in BW, and a composite of the mask and
+%  original RGB images is returned in maskedRGBImage.
 
-    %disp("AngToWall: " + a);
-    angThresholdMin = -0.1;  
-    angThresholdMax = 0.1;
-        
-    if((a > angThresholdMax) || (a < angThresholdMin))
-        if (a > angThresholdMax)
-            disp("L - AngToWall: " + a);
-            %Rob Turn Round it self - Linear, Angular
-            sendVelmsgRob(0, -0.3, robotPub);
-            disp("----");
-        elseif (a < angThresholdMin)
-            disp("R - AngToWall: " + a);
-            %Rob Turn Round it self - Linear, Angular
-            sendVelmsgRob(0, 0.3, robotPub);
-            disp("----");
-        else
-            %Stop Rob
-            sendVelmsgRob(0, 0, robotPub);
-        end
-        findWall(robotPub, true);  
-    end  
-end
+% Auto-generated by colorThresholder app on 12-May-2021
+%------------------------------------------------------
 
-function  wallPositionClose(dist, robotPub)
 
-    disp("dist To Wall: " + dist);
-    distThresholdMin = 0.7;  
-           
-    if((dist > distThresholdMin))
-        if (dist > distThresholdMin)
-            %disp("1 - Dist ToWall: " + dist);
-            %Rob Turn Round it self - Linear, Angular
-            sendVelmsgRob(0.2, 0, robotPub);
-            disp("----")
-        else
-            %Stop Rob
-            sendVelmsgRob(0, 0, robotPub);
-        end
-        mode = false;
-        findWall(robotPub, mode);       
-    end     
+% Convert RGB image to chosen color space
+I = RGB;
+
+% Define thresholds for channel 1 based on histogram settings
+channel1Min = 0.000;
+channel1Max = 0.000;
+
+% Define thresholds for channel 2 based on histogram settings
+channel2Min = 0.000;
+channel2Max = 255.000; %255.000
+
+% Define thresholds for channel 3 based on histogram settings
+channel3Min = 0.000;
+channel3Max = 0.000;
+
+% Create mask based on chosen histogram thresholds
+sliderBW = (I(:,:,1) >= channel1Min ) & (I(:,:,1) <= channel1Max) & ...
+    (I(:,:,2) >= channel2Min ) & (I(:,:,2) <= channel2Max) & ...
+    (I(:,:,3) >= channel3Min ) & (I(:,:,3) <= channel3Max);
+BW = sliderBW;
+
+% Initialize output masked image based on input image.
+maskedRGBImage = RGB;
+
+% Set background pixels where BW is false to zero.
+maskedRGBImage(repmat(~BW,[1 1 3])) = 0;
 end
 
 
-function drivFountOnDot(robotPub)
-
-    pause(1);
-    RGB = takePictureDebug();
-    figure(4);
-    imshow(RGB);
-    
-    pause(1);
-    BW_new = createMask(RGB);
-
-    %imshow(BW_new);  
-    
-    stats = regionprops('table',BW_new,'Centroid');
-    
-    if(stats.Centroid)         
-        allCentroids = [stats.Centroid];
-        xCentroids = allCentroids(1:2:end); 
-        disp("xCentroids: " + xCentroids);
-    else
-        disp("stats.Centroid Not found: ");       
-        findGreenDot(robotPub);       
-        %sendVelmsgRob(0.5, 0, robotPub);
-        %pause(0.5);
-        return;
-    end
-  
-    angThresholdMin = 300;  
-    angThresholdMax = 360;
-               
-    if((xCentroids > angThresholdMax) || (xCentroids < angThresholdMin))    
-        %pause(2);
-        if (xCentroids < angThresholdMin)
-            disp("x < angThresholdMin");
-            turn90DegreR(robotPub)
-
-            if xCentroids < 50
-                destinFromDot = 3;
-            elseif xCentroids > 200
-                destinFromDot = 2;
-            else
-                destinFromDot = 1;
-            end
-            
-            for i = 1:destinFromDot
-                sendVelmsgRob(0.5, 0, robotPub);
-                pause(1);
-            end
-            
-            turn90DegreL(robotPub)
-            findWall(robotPub, true);
-        end
-
-        if (xCentroids > angThresholdMax)
-            disp("x > angThresholdMax");
-            turn90DegreL(robotPub)
-
-            if xCentroids > 550
-                destinFromDot = 3;
-            elseif xCentroids > 450
-                destinFromDot = 2;
-            elseif xCentroids < 450
-                destinFromDot = 1;
-            else
-                destinFromDot = 1;
-            end
-            
-            for i = 1:destinFromDot
-                sendVelmsgRob(0.5, 0, robotPub);
-                pause(1);
-            end
-            turn90DegreR(robotPub)
-            findWall(robotPub, true);
-        end              
-    else
-        takePicture(robotPub);
-    end
-
-end
-
-
-function turn90DegreR(robotPub)
-    sendVelmsgRob(0, -2.6, robotPub);
-
-end
-
-function turn90DegreL(robotPub)
-    % Turn the robot 90 degrees to the Right
-    sendVelmsgRob(0, 2.6, robotPub);
-
-end
-
-function turn15DegreR(robotPub)
-    for i = 1:3 % Turn the robot 15 degrees to the left
-        sendVelmsgRob(0, -0.5, robotPub);
-        pause(0.2);
-    end 
-end
-
-
-function turn15DegreL(robotPub)
-    for i = 1:1 % Turn the robot 5 degrees to the left
-        sendVelmsgRob(0, -1, robotPub);
-        pause(0.1);
-    end 
-end
-
-function turn5DegreL(robotPub)
-    for i = 1:1 % Turn the robot 5 degrees to the left
-        sendVelmsgRob(0, -1, robotPub);
-        pause(0.1);
-    end 
-end
-
-function driveForward(robotPub)
-     for i = 1:1 % Turn the robot 5 degrees to the left
-        sendVelmsgRob(0.7, 0, robotPub);
-        pause(1);
-     end
-end
-
-
-
-
-
-
+% Bruges ikke lige nu ---
 
 function avoidObstaclesXXX(robotPub)
 
