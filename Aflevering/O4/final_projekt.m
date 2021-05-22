@@ -41,7 +41,7 @@ send(resetRobotPose, msg);
 %Calculate a simple path:
 punkt_A = [46.7 28.3];
 punkt_B = [3.5 10.3];
-punkt_BC = [2.5 6.7]; 
+%punkt_BC = [2.5 6.7]; 
 punkt_C = [26 2.2];
 
 %%
@@ -50,14 +50,14 @@ punkt_C = [26 2.2];
 
 nodes = 550;
 numUpdates = 34;
-
-
-findGreenDot(robotPub);
+%numUpdates = 48;
 
 distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
 avoidObstaclesMode = false;%Sæt den til true hvis den skal bruges
 
-% Test avoidObstacles-
+%findGreenDot(robotPub);
+
+% Test avoidObstacles----
 % turn90DegreR(robotPub);
 % LocalizationPose = [4.2 ,20, 0];
 % punk_Test = [4.2 23];
@@ -81,7 +81,7 @@ controller_Start = setController(path_Localization);
 drivePath(punkt_A, controller_Start, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode); %(Goal,controller) 
 disp("LocalizationPose:" + LocalizationPose);
 
-for i = 1:3
+for i = 1:6
     turn90DegreR(robotPub);
 end
 
@@ -96,18 +96,20 @@ drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesM
 findGreenDot(robotPub);
 
 disp("---- Path 1 ---")
-pause(2)
+pause(1)
 
 % -- Path BC drive
-distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
-
-path3 = findpathFunc(punkt_B, punkt_BC, map, nodes);
-controller3 = setController(path3);
-drivePath(punkt_BC, controller3, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode);
+% distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
+% 
+% path3 = findpathFunc(punkt_B, punkt_BC, map, nodes);
+% controller3 = setController(path3);
+% drivePath(punkt_BC, controller3, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode);
 
 
 % -- Path two drive
-path2 = findpathFunc(punkt_BC, punkt_C, map, nodes);
+distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
+
+path2 = findpathFunc(punkt_B, punkt_C, map, nodes);
 controller2 = setController(path2);
 drivePath(punkt_C, controller2, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode);
 findGreenDot(robotPub);
@@ -115,7 +117,7 @@ findGreenDot(robotPub);
 sendVelmsgRob(0,0, robotPub); %Stop Rob
 
 disp("----I'am Done MOM!!!!---")
-pause(2)
+pause(1)
 
 function turnRob(robotPub, odom, degree, mode)
     %odomPose = getCurrentPose(odom);    
@@ -526,27 +528,27 @@ function foundGreenDot = takePicture(robotPub)
     foundGreenDot = dotFound(img, robotPub);
 end
 
-function img = takePictureDebug()
-     % --- Debug ---
-    %disp("Take Picture For Debug");
-     % Grap image from camera
-    if ismember('/camera/rgb/image_color/compressed',rostopic('list'))
-        imsub = rossubscriber('/camera/rgb/image_color/compressed');
-    end
-
-    if ismember('/camera/rgb/image_raw',rostopic('list'))
-        imsub = rossubscriber('/camera/rgb/image_raw');
-    end
-    
-    imgraw = receive(imsub); % a serialised image
-    img = readImage(imgraw); % decode image  
-end
+% function img = takePictureDebug()
+%      % --- Debug ---
+%     %disp("Take Picture For Debug");
+%      % Grap image from camera
+%     if ismember('/camera/rgb/image_color/compressed',rostopic('list'))
+%         imsub = rossubscriber('/camera/rgb/image_color/compressed');
+%     end
+% 
+%     if ismember('/camera/rgb/image_raw',rostopic('list'))
+%         imsub = rossubscriber('/camera/rgb/image_raw');
+%     end
+%     
+%     imgraw = receive(imsub); % a serialised image
+%     img = readImage(imgraw); % decode image  
+% end
 
 function foundGreenDot = dotFound(RGB, robotPub)      
 
     figure(3);
     imshow(RGB);
-    RGB = takePictureDebug();
+    %RGB = takePictureDebug();
     %pause(1);
     BW = createMask(RGB);
     imshow(BW);
@@ -568,18 +570,16 @@ function foundGreenDot = dotFound(RGB, robotPub)
             %----
             % Find green Dot and drive
             %----
-            drivFountOnDot(robotPub); 
+            drivFountOnDot(robotPub, BW); 
 
             %pause(20);
             %Rob køre 40 cm fra væg
             wallPositionClose(dist, robotPub);
 
-            for i = 1:5 %Turn rob 180 degres
+            for i = 1:6 %Turn rob 180 degres
                 turn90DegreR(robotPub);       
                 pause(0.1);
             end
-            findWall(robotPub, true); 
-
             disp("!!----STOP---!!!" );                            
             pause(2); 
          else
@@ -589,7 +589,7 @@ function foundGreenDot = dotFound(RGB, robotPub)
             foundGreenDot = false;   
         end
     else
-        disp("Not Found Green Dot");       
+        %disp("Not Found Green Dot");       
         %Rob Turn Round it self - Linear, Angular
         turn15DegreL(robotPub);
         foundGreenDot = false;     
@@ -662,34 +662,34 @@ function  wallPositionClose(dist, robotPub)
 end
 
 
-function drivFountOnDot(robotPub)
+function drivFountOnDot(robotPub, BW)
 
-    pause(0.5);
-    RGB = takePictureDebug();
-    figure(3);
-    imshow(RGB);
+    %RGB = takePicture(robotPub);
+    %figure(3);
+    %imshow(RGB);
     
-    pause(0.5);
-    BW_new = createMask(RGB);
-    imshow(BW_new);  
+    %pause(0.5);
+    %BW_new = createMask(RGB);
+    %imshow(BW_new);  
     
-    stats = regionprops('table',BW_new,'Centroid');  
+    stats = regionprops('table',BW,'Centroid');  
     if(stats.Centroid)         
         allCentroids = [stats.Centroid];
         xCentroids = allCentroids(1:2:end); 
         disp("xCentroids: " + xCentroids);
     else
-        disp("stats.Centroid Not found: ");       
-        findGreenDot(robotPub);       
-        %sendVelmsgRob(0.5, 0, robotPub);
-        %pause(0.5);
+        disp("stats.Centroid Not found: ");        
+        turn90DegreR(robotPub);
+        pause(0.5);
+        driveForward(robotPub);
+        pause(0.5);
+        
+        findGreenDot(robotPub);      
         return;
     end
   
-
-   angThresholdMin = 300;  
-    angThresholdMax = 360;
-      
+    angThresholdMin = 300;  
+    angThresholdMax = 360;   
     
     if((xCentroids > angThresholdMax) || (xCentroids < angThresholdMin))    
         %pause(2);
@@ -718,7 +718,7 @@ function drivFountOnDot(robotPub)
         if (xCentroids > angThresholdMax)
             disp("x > angThresholdMax");
             turn90DegreR(robotPub)
-disp("turn90DegreR");
+            disp("turn90DegreR");
             pause(1);
             if xCentroids > 550
                 destinFromDot = 3;
