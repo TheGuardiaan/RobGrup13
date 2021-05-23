@@ -40,38 +40,31 @@ send(resetRobotPose, msg);
 %%
 %Calculate a simple path:
 punkt_A = [46.7 28.3];
-punkt_B = [3.5 10.3];
-%punkt_BC = [2.5 6.7]; 
+punkt_B = [5 10.3];
 punkt_C = [26 2.2];
 
 %%
 
-%turnRob(robotPub, odom, 35, "R");
+%turnRob(robotPub, odom, 180, "l");
+%turn90DegreL(robotPub);
+
 
 nodes = 550;
 numUpdates = 34;
-%numUpdates = 48;
+%numUpdates = 44;
 
-distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
+distMode = 0; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
 avoidObstaclesMode = false;%Sæt den til true hvis den skal bruges
 
 %findGreenDot(robotPub);
 
-% Test avoidObstacles----
-% turn90DegreR(robotPub);
-% LocalizationPose = [4.2 ,20, 0];
-% punk_Test = [4.2 23];
-% path = findpathFunc(punk_Test, punkt_B, map, nodes);
-% controller = setController(path);
-% drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode, true); %(Goal,controller) 
-% -----------------------------
 
-%Find Rob And Driv to punktA
+% %Find Rob and Driv to punktA
 LocalizationPose = MonteCarlo_Localization_Algorithm(mapLocalization, robotPub, numUpdates);
 
 LocalizationPoseX = LocalizationPose(1);
 LocalizationPoseY = LocalizationPose(2);
-punkt_Localization = [LocalizationPoseX LocalizationPoseY];
+punkt_Localization = [LocalizationPoseX, LocalizationPoseY];
 
 %disp("LocalizationPoseX:" + LocalizationPoseX);
 %disp("LocalizationPoseY:" + LocalizationPoseY);
@@ -81,14 +74,11 @@ controller_Start = setController(path_Localization);
 drivePath(punkt_A, controller_Start, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode); %(Goal,controller) 
 disp("LocalizationPose:" + LocalizationPose);
 
-for i = 1:6
-    turn90DegreR(robotPub);
-end
-
+turnRob(robotPub, odom, 90, "r");
 
 %%
 % -- Path one drive
-distMode = true; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
+distMode = 1; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
 
 path = findpathFunc(punkt_A, punkt_B, map, nodes);
 controller = setController(path);
@@ -98,16 +88,21 @@ findGreenDot(robotPub);
 disp("---- Path 1 ---")
 pause(1)
 
-% -- Path BC drive
-% distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
-% 
-% path3 = findpathFunc(punkt_B, punkt_BC, map, nodes);
-% controller3 = setController(path3);
-% drivePath(punkt_BC, controller3, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode);
+
+% % Test avoidObstacles----
+% distMode = 1; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
+% turn90DegreR(robotPub);
+% LocalizationPose = [5.5 ,18, 0];
+% path = findpathFunc(punkt_A, punkt_B, map, nodes);
+% controller = setController(path);
+% drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode); %(Goal,controller) 
+% findGreenDot(robotPub);
+% % -----------------------------
+
 
 
 % -- Path two drive
-distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
+distMode = 0; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
 
 path2 = findpathFunc(punkt_B, punkt_C, map, nodes);
 controller2 = setController(path2);
@@ -124,33 +119,47 @@ function turnRob(robotPub, odom, degree, mode)
     %theta = odomPose(3);
     
     theta = 0;
-    disp("Theta: " + theta);     
-    R = deg2rad(degree);   
+    %disp("Theta: " + theta);     
+    rad = deg2rad(degree);   
       
     speed = 0.2;
     
     switch mode
-        case "L"
+        case "r"
+            disp("Turen Right");
+            rad = (rad * -1);
+            
+            disp("Rad:" + rad); 
+            while (theta > rad)                
+                oldTheta = theta;
+                
+                sendVelmsgRob(0, -speed, robotPub);
+                odomPose = getCurrentPose(odom);
+                odomPose = odomPose(3);
+                %disp("odomPose: " + odomPose);
+                
+                deltaTheta = odomPose - oldTheta;
+                %disp("deltaTheta: " + deltaTheta);
+                
+                
+                theta = deltaTheta + theta;
+                disp("Rad: " + rad);
+                disp("Theta: " + theta);
+                
+                %theta = odomPose(3);                 
+                %disp("Theta: " + theta);
+            end
+                      
+        case "l"
             disp("Turen Left");
-            R = (R * -1);
-            disp("R:" + R); 
-            while (theta > R)
+            disp("Rad:" + rad); 
+             while (theta <= rad)
                 sendVelmsgRob(0, speed, robotPub);
                 odomPose = getCurrentPose(odom);
 
                 theta = odomPose(3);
-                disp("Theta: " + theta);
-            end
-                      
-        case "R"
-            disp("Turen Right");
-            disp("R:" + R); 
-             while (theta < R)
-                sendVelmsgRob(0, -speed, robotPub);
-                odomPose = getCurrentPose(odom);
 
-                theta = odomPose(3);
-                disp("Theta: " + theta);
+                %disp("Theta: " + theta);
              end
         otherwise
             disp("Need to set 'R' or 'L'");
@@ -159,8 +168,7 @@ function turnRob(robotPub, odom, degree, mode)
     
 
     disp("Stop Truning");
-pause(10);
-
+    
 end
 
 
@@ -186,17 +194,42 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
     while( distanceToGoal > goalRadius )
     
         %Obstacle Detection
-          
-        if ((distanceToGoal < 8) && (distMode == true))
-           avoidObstaclesMode = true; 
-           distMode = false;
+%           
+%         if ((distanceToGoal < 8) && (distMode == true))
+%            avoidObstaclesMode = true; 
+%            distMode = false;
+%         end
+%         
+%         if avoidObstaclesMode()
+%            [dist, a] =  scanWorld(robotPub);
+%            disp("[dist, a]: " + dist + " " + a);
+%         end
+%      
+        
+       switch distMode
+        case 1
+            %disp("distMode: " + distMode);
+            if (distanceToGoal < 8)
+                avoidObstaclesMode = true; 
+                distMode = 0;
+            end
+                      
+        case 2
+            %disp("distMode: " + distMode);
+            if (distanceToGoal > 20)
+                avoidObstaclesMode = true; 
+                distMode = 0;
+            end   
         end
         
+        %Obstacle Detection 
         if avoidObstaclesMode()
-           [dist, a] =  scanWorld(robotPub);
-           disp("[dist, a]: " + dist + " " + a);
+           [dist, a] =  scanWorld(robotPub, odom, true);
+           %disp("Dist to wall: " + dist);
         end
-     
+        
+
+        
         % Get the robot's velocity using controller inputs
         %vel = derivative(robot, robotCurrentPose, [v omega]);
     
@@ -255,34 +288,58 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
     avoidObstaclesMode(false);
 end
 
-function avoidObstacles(robotPub)
+function avoidObstacles(robotPub, odom)
     disp("In obstacleDetected function")
+      
+    [dist, a] = scanWorld(robotPub, odom, false);
+    disp("Dist to Wall - EstraScan: " + dist);
+    pause(2);
+    
+    if (dist < 0.6)
+        driveForward(robotPub, "b");
+        sendVelmsgRob(0, 0, robotPub); %Stop robot
+            pause(0.5);
+        scanWorld(robotPub, odom, true);       
+    else
+        turn90DegreR(robotPub);
+        %turnRob(robotPub, odom, 90, "r");        
+            pause(0.5);
+            
+        driveForward(robotPub, "f");      
+            pause(0.5);
+                      
+        turn90DegreL(robotPub);
+        %turnRob(robotPub, odom, 90, "l");
         
-    findWall(robotPub, true);% Look at wall
-    disp("FindWall");
-    pause(0.5);
-    
-    %turnRob(robotPub, odom, 90, "R");
-    turn90DegreR(robotPub);
-    
-    pause(0.5);
-    
-    [dist, a] = scanWorld(robotPub);
-    disp("2 - dist:" + dist)
-    pause(1);
-    
-    driveForward(robotPub);
-    pause(0.5);
-    turn90DegreL(robotPub);
-    pause(0.5);
-    
-    [dist, a] = scanWorld(robotPub);
-    if dist < 1
-        scanWorld(robotPub);    
+        sendVelmsgRob(0, 0, robotPub); %Stop robot
+            pause(0.5);
+        %scanWorld(robotPub, odom, true);    
     end   
+    scanWorld(robotPub, odom, true);  
+    
+%     turn90DegreR(robotPub);
+%     %turnRob(robotPub, odom, 90, "r");
+%     
+%     pause(0.5);
+%     
+% % %     [dist, a] = scanWorld(robotPub, odom);
+% % %     disp("Dist to Wall: " + dist)
+% % %     pause(1);
+%     
+%     driveForward(robotPub, "f");
+%     pause(0.5);
+%     turn90DegreL(robotPub);
+%     %turnRob(robotPub, odom, 90, "L");
+%     pause(0.5);
+    
+
+    
+    
+    
 end
 
-function [dist, a] = scanWorld(robotPub)
+function [dist, a] = scanWorld(robotPub, odom, extraScan)
+
    if ismember('/scan',rostopic('list'))
         scansub = rossubscriber('/scan');  
 
@@ -312,18 +369,24 @@ function [dist, a] = scanWorld(robotPub)
 
             % Compute distance of the closest obstacle
             dist = abs(b)/(sqrt(a.^2+1));
-            disp("1 - dist:" + dist);
+            %disp("1 - dist:" + dist);
             
             minDist = 1;
 
-            if (dist < minDist)  
+            if extraScan
+                if (dist < minDist)  
                     sendVelmsgRob(0, 0, robotPub); %Stop robot
-                    avoidObstacles(robotPub);  
-            else 
-                dist = 10;
-                a = 0;
-            end 
-            
+                    
+                    findWall(robotPub, true);% Look at wall
+                    disp("FindWall");
+                    disp("Dist to Wall: " + dist); 
+                    
+                    avoidObstacles(robotPub, odom);  
+                    %else 
+                    %dist = 10;
+                    %a = 0;
+                end 
+            end                
         else
          dist = 10;
          a = 0;
@@ -458,7 +521,7 @@ function path = findpathFunc(start_punkt, end_punkt, map, nodes)
 end
 
 function controllerReturn = setController(path)
-    disp("Run controllerReturn Func")
+    %disp("Run controllerReturn Func")
     %Simulering i Gazebo
     controller = controllerPurePursuit;
     controller.Waypoints = path;
@@ -497,6 +560,7 @@ function findGreenDot(robotPub)
                 for c = 1:3
                     disp("---- !! Bip !! !! Bip !! !! Bip !! ---")
                     pause(0.5)
+                    return;
                 end            
             greenDotNotFound = false;
         end
@@ -528,36 +592,41 @@ function foundGreenDot = takePicture(robotPub)
     foundGreenDot = dotFound(img, robotPub);
 end
 
-% function img = takePictureDebug()
-%      % --- Debug ---
-%     %disp("Take Picture For Debug");
-%      % Grap image from camera
-%     if ismember('/camera/rgb/image_color/compressed',rostopic('list'))
-%         imsub = rossubscriber('/camera/rgb/image_color/compressed');
-%     end
-% 
-%     if ismember('/camera/rgb/image_raw',rostopic('list'))
-%         imsub = rossubscriber('/camera/rgb/image_raw');
-%     end
-%     
-%     imgraw = receive(imsub); % a serialised image
-%     img = readImage(imgraw); % decode image  
-% end
+function img = takePictureDebug()
+     % --- Debug ---
+    %disp("Take Picture For Debug");
+     % Grap image from camera
+    if ismember('/camera/rgb/image_color/compressed',rostopic('list'))
+        imsub = rossubscriber('/camera/rgb/image_color/compressed');
+    end
+
+    if ismember('/camera/rgb/image_raw',rostopic('list'))
+        imsub = rossubscriber('/camera/rgb/image_raw');
+    end
+    
+    imgraw = receive(imsub); % a serialised image
+    img = readImage(imgraw); % decode image  
+end
+
 
 function foundGreenDot = dotFound(RGB, robotPub)      
 
     figure(3);
     imshow(RGB);
+    
+    %disp("size(RGB);" +  size(RGB));
+    
     %RGB = takePictureDebug();
     %pause(1);
     BW = createMask(RGB);
+    figure(4);
     imshow(BW);
       
     stats = regionprops('table',BW,'Centroid');
     
     if(stats.Centroid)   
         
-        circleFound = findCircle(BW);
+        [circleFound, centersBright] = findCircle(BW);
         if(circleFound) 
         
             disp("!! - Found Green DOT - !!");             
@@ -565,12 +634,12 @@ function foundGreenDot = dotFound(RGB, robotPub)
             foundGreenDot = true;        
             [a, dist] = findWall(robotPub, true); 
             disp("FindWall");
-            pause(0.5);
+            pause(1);
 
             %----
             % Find green Dot and drive
             %----
-            drivFountOnDot(robotPub, BW); 
+            drivFountOnDot(robotPub, BW, centersBright); 
 
             %pause(20);
             %Rob køre 40 cm fra væg
@@ -597,7 +666,7 @@ function foundGreenDot = dotFound(RGB, robotPub)
 end
 
 
-function circleFound = findCircle(A)
+function [circleFound, centersBright] = findCircle(A)
     Rmin = 10;
     Rmax = 100;
 
@@ -624,15 +693,15 @@ function  wallPosition(a, robotPub)
         
     if((a > angThresholdMax) || (a < angThresholdMin))
         if (a > angThresholdMax)
-            disp("L - AngToWall: " + a);
+            %disp("L - AngToWall: " + a);
             %Rob Turn Round it self - Linear, Angular
             sendVelmsgRob(0, -0.3, robotPub);
-            disp("----");
+            %disp("----");
         elseif (a < angThresholdMin)
-            disp("R - AngToWall: " + a);
+            %disp("R - AngToWall: " + a);
             %Rob Turn Round it self - Linear, Angular
             sendVelmsgRob(0, 0.3, robotPub);
-            disp("----");
+            %disp("----");
         else
             %Stop Rob
             sendVelmsgRob(0, 0, robotPub);
@@ -651,7 +720,7 @@ function  wallPositionClose(dist, robotPub)
             %disp("1 - Dist ToWall: " + dist);
             %Rob Turn Round it self - Linear, Angular
             sendVelmsgRob(0.2, 0, robotPub);
-            disp("----")
+            %disp("----")
         else
             %Stop Rob
             sendVelmsgRob(0, 0, robotPub);
@@ -662,26 +731,35 @@ function  wallPositionClose(dist, robotPub)
 end
 
 
-function drivFountOnDot(robotPub, BW)
+function drivFountOnDot(robotPub, BW, centersBright)
 
-    %RGB = takePicture(robotPub);
-    %figure(3);
-    %imshow(RGB);
+    RGB = takePictureDebug();
+    BW = createMask(RGB);
+    [circleFound, centersBright] = findCircle(BW);
+    
+    disp("centersBright--- " + centersBright);
+    figure(3);
+    imshow(BW);
     
     %pause(0.5);
     %BW_new = createMask(RGB);
     %imshow(BW_new);  
     
-    stats = regionprops('table',BW,'Centroid');  
-    if(stats.Centroid)         
-        allCentroids = [stats.Centroid];
-        xCentroids = allCentroids(1:2:end); 
-        disp("xCentroids: " + xCentroids);
-    else
+%     stats = regionprops('table',BW,'Centroid');  
+%     if(stats.Centroid)         
+%         allCentroids = [stats.Centroid];
+%         xCentroids = allCentroids(1:2:end); 
+%         disp("xCentroids: " + xCentroids);
+%     else
+    if centersBright > 0
+           %disp(centersBright);
+           xCentroids = centersBright(1:2:end); 
+            disp("X - Dot: " + xCentroids);
+        else
         disp("stats.Centroid Not found: ");        
         turn90DegreR(robotPub);
         pause(0.5);
-        driveForward(robotPub);
+        driveForward(robotPub, "f");
         pause(0.5);
         
         findGreenDot(robotPub);      
@@ -734,7 +812,7 @@ function drivFountOnDot(robotPub, BW)
                 sendVelmsgRob(0.5, 0, robotPub);
                 pause(1);
             end
-            turn90DegreL(robotPub)
+            turn90DegreL(robotPub);
             findWall(robotPub, true);
         end              
     else
@@ -743,17 +821,40 @@ function drivFountOnDot(robotPub, BW)
 
 end
 
-
 function turn90DegreR(robotPub)
+    disp("Truning Rob Right");
     sendVelmsgRob(0, -2.6, robotPub);
 
 end
 
 function turn90DegreL(robotPub)
+    disp("Truning Rob left");
     % Turn the robot 90 degrees to the Right
+
     sendVelmsgRob(0, 2.6, robotPub);
 
 end
+
+
+% function turn90DegreR(robotPub)
+%     disp("Truning Rob Right");
+%     for i = 1:1
+%         sendVelmsgRob(0, -3, robotPub);
+%         pause(0.1);
+%     end
+% 
+% end
+% 
+% function turn90DegreL(robotPub)
+%     disp("Truning Rob left");
+%     % Turn the robot 90 degrees to the Right
+%     sendVelmsgRob(0, 0, robotPub);
+%     for i = 1:1
+%         sendVelmsgRob(0, 2.8, robotPub);
+%         pause(0.1);
+%     end
+%     sendVelmsgRob(0, 0, robotPub);
+% end
 
 function turn15DegreR(robotPub)
     for i = 1:3 % Turn the robot 15 degrees to the left
@@ -777,9 +878,20 @@ function turn5DegreR(robotPub)
     end 
 end
 
-function driveForward(robotPub)
-     for i = 1:2 % Turn the robot 5 degrees to the left
-        sendVelmsgRob(1, 0, robotPub);
+function driveForward(robotPub, mode)
+
+switch mode
+    case "f"
+        speed = 0.8;  
+        disp("Driving Forward");
+    case "b"
+        speed = -1;       
+    otherwise
+        disp("Driving Backward");
+end
+
+     for i = 1:1 % Turn the robot 5 degrees to the left
+        sendVelmsgRob(speed, 0, robotPub);
         pause(0.3);
      end
 end
@@ -883,92 +995,5 @@ maskedRGBImage(repmat(~BW,[1 1 3])) = 0;
 end
 
 
-% Bruges ikke lige nu ---
 
-function avoidObstaclesXXX(robotPub)
-
-   disp("In obstacleDetected function")
-   [dist, enoughDataForCart] = scanWorld(robotPub); 
-   if(enoughDataForCart == false)
-       disp("enoughDataForCart = false" + enoughDataForCart)
-       return;
-   end
-
-   disp("Dist: " + dist)
-   %checks if too close to an obstacle
-
-   minDist = 0.7;
-   distanceThresholdMin = 0.4;
-   distanceThresholdMax = 0.7;
-
-   if (dist < minDist)
-       disp("dist < 1 meter")
-       sendVelmsgRob(0, 0, robotPub); %Stop robot
-       [dist] = scanWorld(robotPub); %Scan again to check if moving obstacle
-
-       findWall(robotPub, true);% Look at wall
-       
-       turn90DegreR(robotPub);
-       while(dist < minDist)
-            disp(" in while loop, dist < 1 meter")
-
-            if ((dist > distanceThresholdMin) && (dist < distanceThresholdMax))
-                sendVelmsgRob(0.5, 0, robotPub);
-                disp("Distance til væg: " + dist)
-
-            elseif(dist < distanceThresholdMin) % Distance to Small
-                sendVelmsgRob(0.2, 0.1, robotPub); 
-                disp("Distance til væg: " + dist)
-            end
-            [dist, enoughDataForCart] = scanWorld(robotPub); 
-
-            if(enoughDataForCart == false)
-                disp("enoughDataForCart = false" + enoughDataForCart)
-                driveForward(robotPub)
-                turn90DegreL(robotPub);
-                return;
-            end
-
-       end
-   end
-end
-
-function [dist, enoughDataForCart] = scanWorldXXX(robotPub)
-   if ismember('/scan',rostopic('list'))
-        scansub = rossubscriber('/scan');  
-
-        scan = receive(scansub); %Receive message             
-                    
-        cart = readCartesian(scan); %extract cartesian coordinates from scan
-        
-        if (length(cart) >= 200)  % Scan receive enough data to calculate distance (den ser noget foran sig)
-            %scan = receive(scansub); %Receive message
-            %cart = readCartesian(scan);
-            x = cart(:,2); % x-pos
-            d = cart(:,1); % depth
-
-            % only left side
-            xleft = x(100:200);
-            dleft = d(100:200);
-            %plot(xleft, dleft, '.');
-
-            mdl = fitlm(xleft,dleft);
-            coef=mdl.Coefficients.Estimate;
-
-            %plot(x,d, '.'), hold on
-            %plot(x, coef(1) + coef(2)*x, 'r'); 
-
-            a = coef(2);
-            b = coef(1);
-
-            % Compute distance of the closest obstacle
-            dist = abs(b)/(sqrt(a.^2+1));
-            enoughDataForCart = true;
-        else
-            dist = 10;
-            enoughDataForCart = false;
-        end
-          
-   end
-end
 
