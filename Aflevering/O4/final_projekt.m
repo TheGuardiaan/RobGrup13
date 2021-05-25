@@ -40,7 +40,7 @@ send(resetRobotPose, msg);
 %%
 %Calculate a simple path:
 punkt_A = [46.7 28.3];
-punkt_B = [5 10.3];
+punkt_B = [4 10.3];
 punkt_C = [26 2.2];
 
 %%
@@ -74,7 +74,11 @@ controller_Start = setController(path_Localization);
 drivePath(punkt_A, controller_Start, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode); %(Goal,controller) 
 disp("LocalizationPose:" + LocalizationPose);
 
-turnRob(robotPub, odom, 90, "r");
+turn90DegreR(robotPub);
+pause(1);
+turn90DegreR(robotPub);
+
+%turnRob(robotPub, odom, 90, "r");
 
 %%
 % -- Path one drive
@@ -223,7 +227,7 @@ function drivePath(GazeboGoal, controller, robotPub, odom, LocalizationPose, avo
         end
         
         %Obstacle Detection 
-        if avoidObstaclesMode()
+        if avoidObstaclesMode
            [dist, a] =  scanWorld(robotPub, odom, true);
            %disp("Dist to wall: " + dist);
         end
@@ -411,7 +415,7 @@ function OdomPose = getCurrentPose(odom)
 end
 
 %%
-function estimatedPose = MonteCarlo_Localization_Algorithm(map, robotPub, numUpdates)
+function estimatedPose = MonteCarlo_Localization_Algorithm(map, robotPub, numUpdates, odom)
     odometryModel = odometryMotionModel;
     odometryModel.Noise = [0.2 0.2 0.2 0.2];
     
@@ -473,6 +477,7 @@ function estimatedPose = MonteCarlo_Localization_Algorithm(map, robotPub, numUpd
     i = 0;
     while i < numUpdates
         
+        %turnRob(robotPub, odom, 15, "r");
         turn15DegreR(robotPub);
         % Receive laser scan and odometry message.
         scanMsg = receive(laserSub);
@@ -645,6 +650,7 @@ function foundGreenDot = dotFound(RGB, robotPub)
             %Rob køre 40 cm fra væg
             wallPositionClose(dist, robotPub);
 
+            %turnRob(robotPub, odom, 175, "r");
             for i = 1:6 %Turn rob 180 degres
                 turn90DegreR(robotPub);       
                 pause(0.1);
@@ -654,12 +660,14 @@ function foundGreenDot = dotFound(RGB, robotPub)
          else
             disp("Not Found Green Dot");       
             %Rob Turn Round it self - Linear, Angular
+            %turnRob(robotPub, odom, 15, "l");
             turn15DegreL(robotPub);
             foundGreenDot = false;   
         end
     else
         %disp("Not Found Green Dot");       
         %Rob Turn Round it self - Linear, Angular
+        %turnRob(robotPub, odom, 15, "l");
         turn15DegreL(robotPub);
         foundGreenDot = false;     
     end       
@@ -756,7 +764,8 @@ function drivFountOnDot(robotPub, BW, centersBright)
            xCentroids = centersBright(1:2:end); 
             disp("X - Dot: " + xCentroids);
         else
-        disp("stats.Centroid Not found: ");        
+        disp("stats.Centroid Not found: ");    
+        %turnRob(robotPub, odom, 90, "r");
         turn90DegreR(robotPub);
         pause(0.5);
         driveForward(robotPub, "f");
@@ -773,8 +782,9 @@ function drivFountOnDot(robotPub, BW, centersBright)
         %pause(2);
         if (xCentroids < angThresholdMin)
             disp("x < angThresholdMin");
+            %turnRob(robotPub, odom, 90, "l");
             turn90DegreL(robotPub);
-            disp("turn90DegreL");
+            %disp("turn90DegreL");
             pause(1);
             if xCentroids < 50
                 destinFromDot = 3;
@@ -789,14 +799,16 @@ function drivFountOnDot(robotPub, BW, centersBright)
                 pause(1);
             end
             
+            %turnRob(robotPub, odom, 90, "r");
             turn90DegreR(robotPub)
             findWall(robotPub, true);
         end
 
         if (xCentroids > angThresholdMax)
             disp("x > angThresholdMax");
+            %turnRob(robotPub, odom, 90, "r");
             turn90DegreR(robotPub)
-            disp("turn90DegreR");
+            %disp("turn90DegreR");
             pause(1);
             if xCentroids > 550
                 destinFromDot = 3;
@@ -812,6 +824,7 @@ function drivFountOnDot(robotPub, BW, centersBright)
                 sendVelmsgRob(0.5, 0, robotPub);
                 pause(1);
             end
+            %turnRob(robotPub, odom, 90, "l");
             turn90DegreL(robotPub);
             findWall(robotPub, true);
         end              
