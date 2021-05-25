@@ -328,20 +328,26 @@ function sendVelmsgRob(Linear, Angular, robotPub)
     send(robotPub,velmsg);   
 end
 
+
 function findGreenDot(robotPub)
     greenDotNotFound = true;
         
-    while (greenDotNotFound) 
+    while (greenDotNotFound)           
         img = takePicture();
-        turn35DegreL(robotPub);
         foundGreenDot = dotFound(img, robotPub);
-          
+        
+                        
         if (foundGreenDot) %Make BIB sound ----                
-            disp("---- !! Bip !! !! Bip !! !! Bip !! ---");
+                for c = 1:3
+                    disp("---- !! Bip !! !! Bip !! !! Bip !! ---")
+                    pause(0.5)
+                    return;
+                end            
             greenDotNotFound = false;
         end
     end
 end
+
 
 function img = takePicture()
     disp("Take Picture");
