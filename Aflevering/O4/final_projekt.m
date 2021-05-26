@@ -38,19 +38,7 @@ C = [26 2.2];
 
 nodes = 550; %Number of nodes to path finding
 
-
-% Test avoidObstacles----
-% turn90DegreR(robotPub);
-% LocalizationPose = [5.5 ,18, 0];
-% path = calculatePath(A, B, map, nodes);
-% controller = setController(path);
-% avoidObstaclesMode = true; %Obstacle detection not activated
-% drivePath(B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode); %(Goal,controller) 
-% findGreenDot(robotPub);
-% -----------------------------
-
-
-% %% Find robotpose with localization
+%% Find robotpose with localization
 LocalizationPose = MonteCarloLocalization(mapLocalization, robotPub);
 LocalizationCoordinates = [LocalizationPose(1), LocalizationPose(2)];
 disp("LocalizationPose:" + LocalizationPose);
