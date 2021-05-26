@@ -95,16 +95,9 @@ function drivePath(gazeboGoal, controller, robotPub, odom, localizationPose, avo
             pause(1);
             [dist, a] =  scanWorld();
             disp("Dist to Wall: " + dist); 
-                       
-            enbaleFindWall = true;
-            while (dist < 1) 
-%                 if enbaleFindWall
-%                     findWall(robotPub, true); %Turn to face wall 
-%                     enbaleFindWall = false;
-%                 end               
-             
+          
+            while (dist < 1)                 
                 sendVelmsgRob(0, 0, robotPub);
-
                 avoidObstacles(robotPub); 
                 [dist, a] = scanWorld();
             end   
@@ -481,14 +474,14 @@ function driveInfrontOfDot(robotPub)
             turn90DegreL(robotPub);
             pause(1);
             if xCentroids < 50
-                destinFromDot = 3;
+                distanceFromDot = 3;
             elseif xCentroids > 200
-                destinFromDot = 2;
+                distanceFromDot = 2;
             else
-                destinFromDot = 1;
+                distanceFromDot = 1;
             end
             
-            for i = 1:destinFromDot
+            for i = 1:distanceFromDot
                 sendVelmsgRob(0.5, 0, robotPub);
                 pause(1);
             end
@@ -502,14 +495,14 @@ function driveInfrontOfDot(robotPub)
             turn90DegreR(robotPub)
             pause(1);
             if xCentroids > 550
-                destinFromDot = 3;
+                distanceFromDot = 3;
             elseif xCentroids < 450
-                destinFromDot = 1;
+                distanceFromDot = 1;
             else
-                destinFromDot = 1;
+                distanceFromDot = 1;
             end
             
-            for i = 1:destinFromDot
+            for i = 1:distanceFromDot
                 sendVelmsgRob(0.5, 0, robotPub);
                 pause(1);
             end
