@@ -31,73 +31,13 @@ msg = rosmessage(resetRobotPose);
 send(resetRobotPose, msg);
 
 %%
-<<<<<<< HEAD
 %Set coordinates for A, B and C
 A = [46.7 28.3];
 B = [4 10.3];
 C = [26 2.2];
-=======
-%Calculate a simple path:
-punkt_A = [46.7 28.3];
-punkt_B = [3.5 10.3];
-%punkt_BC = [2.5 6.7]; 
-punkt_C = [26 2.2];
-
-%%
-
-%turnRob(robotPub, odom, 35, "R");
-
-nodes = 550;
-numUpdates = 34;
-%numUpdates = 48;
-
-distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
-avoidObstaclesMode = false;%Sæt den til true hvis den skal bruges
-
-%findGreenDot(robotPub);
-
-% Test avoidObstacles----
-% turn90DegreR(robotPub);
-% LocalizationPose = [4.2 ,20, 0];
-% punk_Test = [4.2 23];
-% path = findpathFunc(punk_Test, punkt_B, map, nodes);
-% controller = setController(path);
-% drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode, true); %(Goal,controller) 
-% -----------------------------
-
-%Find Rob And Driv to punktA
-LocalizationPose = MonteCarlo_Localization_Algorithm(mapLocalization, robotPub, numUpdates);
-
-LocalizationPoseX = LocalizationPose(1);
-LocalizationPoseY = LocalizationPose(2);
-punkt_Localization = [LocalizationPoseX LocalizationPoseY];
-
-%disp("LocalizationPoseX:" + LocalizationPoseX);
-%disp("LocalizationPoseY:" + LocalizationPoseY);
-
-path_Localization = findpathFunc(punkt_Localization, punkt_A, map, nodes);
-controller_Start = setController(path_Localization);
-drivePath(punkt_A, controller_Start, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode); %(Goal,controller) 
-disp("LocalizationPose:" + LocalizationPose);
-
-for i = 1:6
-    turn90DegreR(robotPub);
-end
-
-
-%%
-% -- Path one drive
-distMode = true; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
-
-path = findpathFunc(punkt_A, punkt_B, map, nodes);
-controller = setController(path);
-drivePath(punkt_B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode);
-findGreenDot(robotPub);
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
 
 nodes = 550; %Number of nodes to path finding
 
-<<<<<<< HEAD
 
 % Test avoidObstacles----
 % turn90DegreR(robotPub);
@@ -109,30 +49,17 @@ nodes = 550; %Number of nodes to path finding
 % findGreenDot(robotPub);
 % -----------------------------
 
-=======
-% -- Path BC drive
-% distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
-% 
-% path3 = findpathFunc(punkt_B, punkt_BC, map, nodes);
-% controller3 = setController(path3);
-% drivePath(punkt_BC, controller3, robotPub, odom, LocalizationPose, avoidObstaclesMode, distMode);
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
 
 % %% Find robotpose with localization
 LocalizationPose = MonteCarloLocalization(mapLocalization, robotPub);
 LocalizationCoordinates = [LocalizationPose(1), LocalizationPose(2)];
 disp("LocalizationPose:" + LocalizationPose);
 
-<<<<<<< HEAD
 %% Drive from startposition to A
 path_Localization = calculatePath(LocalizationCoordinates, A, map, nodes);
 controller = setController(path_Localization);
 avoidObstaclesMode = false; %Obstacle detection not activated
 drivePath(A, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode);
-=======
-% -- Path two drive
-distMode = false; %bruges til at sætte avoidObstaclesMode=true når dist < 8 -- 
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
 
 %Turn robot 180 degrees
 turn90DegreR(robotPub);
@@ -148,7 +75,6 @@ avoidObstaclesMode = true; %Obstacle detection activated
 drivePath(B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode);
 findGreenDot(robotPub);
 
-<<<<<<< HEAD
 disp("---- Completed Path from A to B ---");
 pause(1);
 
@@ -159,51 +85,6 @@ avoidObstaclesMode = false; %Obstacle detection not activated
 drivePath(C, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode);
 findGreenDot(robotPub);
 sendVelmsgRob(0,0, robotPub);
-=======
-function turnRob(robotPub, odom, degree, mode)
-    %odomPose = getCurrentPose(odom);    
-    %theta = odomPose(3);
-    
-    theta = 0;
-    disp("Theta: " + theta);     
-    R = deg2rad(degree);   
-      
-    speed = 0.2;
-    
-    switch mode
-        case "L"
-            disp("Turen Left");
-            R = (R * -1);
-            disp("R:" + R); 
-            while (theta > R)
-                sendVelmsgRob(0, speed, robotPub);
-                odomPose = getCurrentPose(odom);
-
-                theta = odomPose(3);
-                disp("Theta: " + theta);
-            end
-                      
-        case "R"
-            disp("Turen Right");
-            disp("R:" + R); 
-             while (theta < R)
-                sendVelmsgRob(0, -speed, robotPub);
-                odomPose = getCurrentPose(odom);
-
-                theta = odomPose(3);
-                disp("Theta: " + theta);
-             end
-        otherwise
-            disp("Need to set 'R' or 'L'");
-            return;
-    end
-    
-
-    disp("Stop Truning");
-pause(10);
-
-end
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
 
 disp("---- Completed Path from B to C ---");
 pause(1);
@@ -221,7 +102,6 @@ function drivePath(gazeboGoal, controller, robotPub, odom, localizationPose, avo
     vizRate = rateControl(1/sampleTime);
     while( distanceToGoal > goalRadius )
     
-<<<<<<< HEAD
         %Obstacle Detection 
         if ((distanceToGoal < 8) && (avoidObstaclesMode == true)) %Only enabled before concrete obstacle            
             pause(1);
@@ -241,22 +121,6 @@ function drivePath(gazeboGoal, controller, robotPub, odom, localizationPose, avo
                 [dist, a] = scanWorld();
             end   
         end
-=======
-        %Obstacle Detection
-          
-        if ((distanceToGoal < 8) && (distMode == true))
-           avoidObstaclesMode = true; 
-           distMode = false;
-        end
-        
-        if avoidObstaclesMode()
-           [dist, a] =  scanWorld(robotPub);
-           disp("[dist, a]: " + dist + " " + a);
-        end
-     
-        % Get the robot's velocity using controller inputs
-        %vel = derivative(robot, robotCurrentPose, [v omega]);
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
     
         %Update the robotpose based on odometry
         oldPose = odomPose;        
@@ -289,7 +153,6 @@ function drivePath(gazeboGoal, controller, robotPub, odom, localizationPose, avo
 end
 
 function avoidObstacles(robotPub)
-<<<<<<< HEAD
        
     [dist, a] = scanWorld();
     disp("Dist to Wall - extra: " + dist); 
@@ -313,35 +176,6 @@ end
 
 function [dist, a] = scanWorld()
 
-=======
-    disp("In obstacleDetected function")
-        
-    findWall(robotPub, true);% Look at wall
-    disp("FindWall");
-    pause(0.5);
-    
-    %turnRob(robotPub, odom, 90, "R");
-    turn90DegreR(robotPub);
-    
-    pause(0.5);
-    
-    [dist, a] = scanWorld(robotPub);
-    disp("2 - dist:" + dist)
-    pause(1);
-    
-    driveForward(robotPub);
-    pause(0.5);
-    turn90DegreL(robotPub);
-    pause(0.5);
-    
-    [dist, a] = scanWorld(robotPub);
-    if dist < 1
-        scanWorld(robotPub);    
-    end   
-end
-
-function [dist, a] = scanWorld(robotPub)
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
    if ismember('/scan',rostopic('list'))
         scansub = rossubscriber('/scan');  
 
@@ -360,31 +194,11 @@ function [dist, a] = scanWorld(robotPub)
             a = coef(2);
             b = coef(1);
 
-<<<<<<< HEAD
             %Calculate distance of the closest obstacle/wall
             dist = abs(b)/(sqrt(a.^2+1));                               
         else       
             dist = 10;
             a = 0;
-=======
-            % Compute distance of the closest obstacle
-            dist = abs(b)/(sqrt(a.^2+1));
-            disp("1 - dist:" + dist);
-            
-            minDist = 1;
-
-            if (dist < minDist)  
-                    sendVelmsgRob(0, 0, robotPub); %Stop robot
-                    avoidObstacles(robotPub);  
-            else 
-                dist = 10;
-                a = 0;
-            end 
-            
-        else
-         dist = 10;
-         a = 0;
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
         end 
    end
 end
@@ -504,11 +318,6 @@ end
 
 %Create controller
 function controllerReturn = setController(path)
-<<<<<<< HEAD
-=======
-    disp("Run controllerReturn Func")
-    %Simulering i Gazebo
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
     controller = controllerPurePursuit;
     controller.Waypoints = path;
     controller.DesiredLinearVelocity = 0.5;
@@ -535,14 +344,7 @@ function findGreenDot(robotPub)
         foundGreenDot = dotFound(img, robotPub);
           
         if (foundGreenDot) %Make BIB sound ----                
-<<<<<<< HEAD
             disp("---- !! Bip !! !! Bip !! !! Bip !! ---");
-=======
-                for c = 1:3
-                    disp("---- !! Bip !! !! Bip !! !! Bip !! ---")
-                    pause(0.5)
-                end            
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
             greenDotNotFound = false;
         end
     end
@@ -560,7 +362,6 @@ function img = takePicture()
         imsub = rossubscriber('/camera/rgb/image_raw');
     end
 
-<<<<<<< HEAD
     imgraw = receive(imsub); %A serialised image
     img = readImage(imgraw); %Decoded image
     
@@ -569,58 +370,19 @@ function img = takePicture()
 end
 
 function foundGreenDot = dotFound(RGB, robotPub)        
-=======
-    imgraw = receive(imsub); % a serialised image
-    img = readImage(imgraw); % decode image    
-        
-    %figure(4);
-    %imshow(img);
-    pause(0.5); %Delay
-
-    foundGreenDot = dotFound(img, robotPub);
-end
-
-% function img = takePictureDebug()
-%      % --- Debug ---
-%     %disp("Take Picture For Debug");
-%      % Grap image from camera
-%     if ismember('/camera/rgb/image_color/compressed',rostopic('list'))
-%         imsub = rossubscriber('/camera/rgb/image_color/compressed');
-%     end
-% 
-%     if ismember('/camera/rgb/image_raw',rostopic('list'))
-%         imsub = rossubscriber('/camera/rgb/image_raw');
-%     end
-%     
-%     imgraw = receive(imsub); % a serialised image
-%     img = readImage(imgraw); % decode image  
-% end
-
-function foundGreenDot = dotFound(RGB, robotPub)      
-
-    figure(3);
-    imshow(RGB);
-    %RGB = takePictureDebug();
-    %pause(1);
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
     BW = createMask(RGB);
+    figure(4);
     imshow(BW);
       
     stats = regionprops('table',BW,'Centroid');
     
     if(stats.Centroid)   
-<<<<<<< HEAD
         [circleFound, centersBright] = findCircle(BW);
-=======
-        
-        circleFound = findCircle(BW);
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
         if(circleFound) 
             disp("!! - Found Green DOT - !!");             
             pause(0.5);       
             foundGreenDot = true;        
             [a, dist] = findWall(robotPub, true); 
-<<<<<<< HEAD
             pause(1);
 
             driveInfrontOfDot(robotPub); 
@@ -631,24 +393,6 @@ function foundGreenDot = dotFound(RGB, robotPub)
             pause(1);
             turn90DegreR(robotPub);
            
-=======
-            disp("FindWall");
-            pause(0.5);
-
-            %----
-            % Find green Dot and drive
-            %----
-            drivFountOnDot(robotPub, BW); 
-
-            %pause(20);
-            %Rob køre 40 cm fra væg
-            wallPositionClose(dist, robotPub);
-
-            for i = 1:6 %Turn rob 180 degres
-                turn90DegreR(robotPub);       
-                pause(0.1);
-            end
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
             disp("!!----STOP---!!!" );                            
             pause(2); 
          else
@@ -663,7 +407,7 @@ function foundGreenDot = dotFound(RGB, robotPub)
 end
 
 
-function circleFound = findCircle(A)
+function [circleFound, centersBright] = findCircle(A)
     Rmin = 10;
     Rmax = 100;
 
@@ -687,23 +431,11 @@ function  faceWall(a, robotPub) %Wallposition
         
     if((a > angThresholdMax) || (a < angThresholdMin))
         if (a > angThresholdMax)
-<<<<<<< HEAD
             %Turn right
             sendVelmsgRob(0, -0.3, robotPub);
         elseif (a < angThresholdMin)
             %Turn left
             sendVelmsgRob(0, 0.3, robotPub);
-=======
-            disp("L - AngToWall: " + a);
-            %Rob Turn Round it self - Linear, Angular
-            sendVelmsgRob(0, -0.3, robotPub);
-            disp("----");
-        elseif (a < angThresholdMin)
-            disp("R - AngToWall: " + a);
-            %Rob Turn Round it self - Linear, Angular
-            sendVelmsgRob(0, 0.3, robotPub);
-            disp("----");
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
         else
             sendVelmsgRob(0, 0, robotPub);
         end
@@ -720,10 +452,6 @@ function  approachWall(dist, robotPub) %WallPosistionClose
     if((dist > distThresholdMin))
         if (dist > distThresholdMin)
             sendVelmsgRob(0.2, 0, robotPub);
-<<<<<<< HEAD
-=======
-            disp("----")
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
         else
             sendVelmsgRob(0, 0, robotPub);
         end
@@ -732,7 +460,6 @@ function  approachWall(dist, robotPub) %WallPosistionClose
     end     
 end
 
-<<<<<<< HEAD
 %Drive robot to a position in front of the green dot 
 function driveInfrontOfDot(robotPub)
     RGB = takePicture();
@@ -751,29 +478,6 @@ function driveInfrontOfDot(robotPub)
         turn90DegreR(robotPub);
         pause(0.5);
         sendVelmsgRob(0.8, 0, robotPub);
-=======
-
-function drivFountOnDot(robotPub, BW)
-
-    %RGB = takePicture(robotPub);
-    %figure(3);
-    %imshow(RGB);
-    
-    %pause(0.5);
-    %BW_new = createMask(RGB);
-    %imshow(BW_new);  
-    
-    stats = regionprops('table',BW,'Centroid');  
-    if(stats.Centroid)         
-        allCentroids = [stats.Centroid];
-        xCentroids = allCentroids(1:2:end); 
-        disp("xCentroids: " + xCentroids);
-    else
-        disp("stats.Centroid Not found: ");        
-        turn90DegreR(robotPub);
-        pause(0.5);
-        driveForward(robotPub);
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
         pause(0.5);
         
         findGreenDot(robotPub);      
@@ -821,7 +525,7 @@ function drivFountOnDot(robotPub, BW)
                 sendVelmsgRob(0.5, 0, robotPub);
                 pause(1);
             end
-            turn90DegreL(robotPub)
+            turn90DegreL(robotPub);
             findWall(robotPub, true);
         end              
     else
@@ -831,32 +535,19 @@ function drivFountOnDot(robotPub, BW)
 
 end
 
-<<<<<<< HEAD
 %Turn the robot 90 degrees to the right
-=======
-
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
 function turn90DegreR(robotPub)
     sendVelmsgRob(0, -2.6, robotPub);
 end
 
 %Turn the robot 90 degrees to the left
 function turn90DegreL(robotPub)
-<<<<<<< HEAD
-=======
-    % Turn the robot 90 degrees to the Right
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
     sendVelmsgRob(0, 2.6, robotPub);
 end
 
-<<<<<<< HEAD
 %Turn the robot 35 degrees to the right
 function turn35DegreR(robotPub)
     for i = 1:3
-=======
-function turn15DegreR(robotPub)
-    for i = 1:3 % Turn the robot 15 degrees to the left
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
         sendVelmsgRob(0, -0.5, robotPub);
         pause(0.2);
     end 
@@ -870,17 +561,6 @@ function turn35DegreL(robotPub)
     end 
 end
 
-<<<<<<< HEAD
-=======
-function driveForward(robotPub)
-     for i = 1:2 % Turn the robot 5 degrees to the left
-        sendVelmsgRob(1, 0, robotPub);
-        pause(0.3);
-     end
-end
-
-
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
 function [a, dist] =  findWall(robotPub, mode)
     if ismember('/scan',rostopic('list'))
 
@@ -962,96 +642,3 @@ maskedRGBImage = RGB;
 maskedRGBImage(repmat(~BW,[1 1 3])) = 0;
 end
 
-<<<<<<< HEAD
-=======
-
-% Bruges ikke lige nu ---
-
-function avoidObstaclesXXX(robotPub)
-
-   disp("In obstacleDetected function")
-   [dist, enoughDataForCart] = scanWorld(robotPub); 
-   if(enoughDataForCart == false)
-       disp("enoughDataForCart = false" + enoughDataForCart)
-       return;
-   end
-
-   disp("Dist: " + dist)
-   %checks if too close to an obstacle
-
-   minDist = 0.7;
-   distanceThresholdMin = 0.4;
-   distanceThresholdMax = 0.7;
-
-   if (dist < minDist)
-       disp("dist < 1 meter")
-       sendVelmsgRob(0, 0, robotPub); %Stop robot
-       [dist] = scanWorld(robotPub); %Scan again to check if moving obstacle
-
-       findWall(robotPub, true);% Look at wall
-       
-       turn90DegreR(robotPub);
-       while(dist < minDist)
-            disp(" in while loop, dist < 1 meter")
-
-            if ((dist > distanceThresholdMin) && (dist < distanceThresholdMax))
-                sendVelmsgRob(0.5, 0, robotPub);
-                disp("Distance til væg: " + dist)
-
-            elseif(dist < distanceThresholdMin) % Distance to Small
-                sendVelmsgRob(0.2, 0.1, robotPub); 
-                disp("Distance til væg: " + dist)
-            end
-            [dist, enoughDataForCart] = scanWorld(robotPub); 
-
-            if(enoughDataForCart == false)
-                disp("enoughDataForCart = false" + enoughDataForCart)
-                driveForward(robotPub)
-                turn90DegreL(robotPub);
-                return;
-            end
-
-       end
-   end
-end
-
-function [dist, enoughDataForCart] = scanWorldXXX(robotPub)
-   if ismember('/scan',rostopic('list'))
-        scansub = rossubscriber('/scan');  
-
-        scan = receive(scansub); %Receive message             
-                    
-        cart = readCartesian(scan); %extract cartesian coordinates from scan
-        
-        if (length(cart) >= 200)  % Scan receive enough data to calculate distance (den ser noget foran sig)
-            %scan = receive(scansub); %Receive message
-            %cart = readCartesian(scan);
-            x = cart(:,2); % x-pos
-            d = cart(:,1); % depth
-
-            % only left side
-            xleft = x(100:200);
-            dleft = d(100:200);
-            %plot(xleft, dleft, '.');
-
-            mdl = fitlm(xleft,dleft);
-            coef=mdl.Coefficients.Estimate;
-
-            %plot(x,d, '.'), hold on
-            %plot(x, coef(1) + coef(2)*x, 'r'); 
-
-            a = coef(2);
-            b = coef(1);
-
-            % Compute distance of the closest obstacle
-            dist = abs(b)/(sqrt(a.^2+1));
-            enoughDataForCart = true;
-        else
-            dist = 10;
-            enoughDataForCart = false;
-        end
-          
-   end
-end
-
->>>>>>> parent of 83f3156 (Video rob køre - Men bliver nød til at flytte mur lidt.. Scann er ikke 100)
