@@ -33,10 +33,22 @@ send(resetRobotPose, msg);
 %%
 %Set coordinates for A, B and C
 A = [46.7 28.3];
-B = [5 10.3];
+B = [4 10.3];
 C = [26 2.2];
 
 nodes = 550; %Number of nodes to path finding
+
+
+% Test avoidObstacles----
+% turn90DegreR(robotPub);
+% LocalizationPose = [5.5 ,18, 0];
+% path = calculatePath(A, B, map, nodes);
+% controller = setController(path);
+% avoidObstaclesMode = true; %Obstacle detection not activated
+% drivePath(B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode); %(Goal,controller) 
+% findGreenDot(robotPub);
+% -----------------------------
+
 
 % %% Find robotpose with localization
 LocalizationPose = MonteCarloLocalization(mapLocalization, robotPub);
@@ -70,10 +82,9 @@ pause(1);
 path = calculatePath(B, C, map, nodes);
 controller = setController(path);
 avoidObstaclesMode = false; %Obstacle detection not activated
-sendVelmsgRob(0.5, 0, robotPub);
-pause(0.5);
 drivePath(C, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode);
 findGreenDot(robotPub);
+sendVelmsgRob(0,0, robotPub);
 
 disp("---- Completed Path from B to C ---");
 pause(1);
@@ -92,12 +103,18 @@ function drivePath(gazeboGoal, controller, robotPub, odom, localizationPose, avo
     while( distanceToGoal > goalRadius )
     
         %Obstacle Detection 
-        if ((distanceToGoal < 8) && (avoidObstaclesMode == true)) %Only enabled before concrete obstacle    
-            %pause(1);
+        if ((distanceToGoal < 8) && (avoidObstaclesMode == true)) %Only enabled before concrete obstacle            
+            pause(1);
             [dist, a] =  scanWorld();
             disp("Dist to Wall: " + dist); 
                        
+            enbaleFindWall = true;
             while (dist < 1) 
+%                 if enbaleFindWall
+%                     findWall(robotPub, true); %Turn to face wall 
+%                     enbaleFindWall = false;
+%                 end               
+             
                 sendVelmsgRob(0, 0, robotPub);
 
                 avoidObstacles(robotPub); 
@@ -136,12 +153,10 @@ function drivePath(gazeboGoal, controller, robotPub, odom, localizationPose, avo
 end
 
 function avoidObstacles(robotPub)
-    pause(1);
-    scanWorld();
-    pause(1);
+       
     [dist, a] = scanWorld();
     disp("Dist to Wall - extra: " + dist); 
-   
+    pause(1);
     
     if (dist < 0.6)
         sendVelmsgRob(-0.7, 0, robotPub);
@@ -330,15 +345,13 @@ function findGreenDot(robotPub)
           
         if (foundGreenDot) %Make BIB sound ----                
             disp("---- !! Bip !! !! Bip !! !! Bip !! ---");
-            pause(1);
-            greenDotNotFound = false;         
+            greenDotNotFound = false;
         end
     end
 end
 
 function img = takePicture()
     disp("Take Picture");
-    
     
     %Grap image from camera
     if ismember('/camera/rgb/image_color/compressed',rostopic('list'))
@@ -354,50 +367,51 @@ function img = takePicture()
     
     figure(3);
     imshow(img);
-    pause(1);
 end
 
 function foundGreenDot = dotFound(RGB, robotPub)        
     BW = createMask(RGB);
     figure(4);
     imshow(BW);
-    pause(1);  
+      
     stats = regionprops('table',BW,'Centroid');
     
     if(stats.Centroid)   
         [circleFound, centersBright] = findCircle(BW);
         if(circleFound) 
-            disp("!! - Found Green DOT - !!");                      
+            disp("!! - Found Green DOT - !!");             
+            pause(0.5);       
+            foundGreenDot = true;        
             [a, dist] = findWall(robotPub, true); 
             pause(1);
 
             driveInfrontOfDot(robotPub); 
             approachWall(dist, robotPub);
-      
+           
             %Turn 180 degrees
             turn90DegreR(robotPub);       
             pause(1);
             turn90DegreR(robotPub);
            
             disp("!!----STOP---!!!" );                            
-            pause(1); 
-            foundGreenDot = true;
+            pause(2); 
          else
             disp("Object found is not green dot");       
             foundGreenDot = false;   
         end
     else
         disp("No object found");    
+        turn35DegreL(robotPub);
         foundGreenDot = false;     
     end       
 end
 
 
-function [circleFound, centersBright] = findCircle(BW)
+function [circleFound, centersBright] = findCircle(A)
     Rmin = 10;
     Rmax = 100;
 
-    [centersBright, radiiBright] = imfindcircles(BW,[Rmin Rmax],'ObjectPolarity','bright');
+    [centersBright, radiiBright] = imfindcircles(A,[Rmin Rmax],'ObjectPolarity','bright');
     viscircles(centersBright, radiiBright,'Color','b');
 
         if centersBright > 0
@@ -455,7 +469,6 @@ function driveInfrontOfDot(robotPub)
     disp("centersBright--- " + centersBright);
     figure(3);
     imshow(BW);
-    pause(1);
     
     if centersBright > 0
            xCentroids = centersBright(1:2:end); 
@@ -628,3 +641,4 @@ maskedRGBImage = RGB;
 % Set background pixels where BW is false to zero.
 maskedRGBImage(repmat(~BW,[1 1 3])) = 0;
 end
+
