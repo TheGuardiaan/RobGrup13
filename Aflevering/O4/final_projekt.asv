@@ -38,19 +38,7 @@ C = [26 2.2];
 
 nodes = 550; %Number of nodes to path finding
 
-
-% Test avoidObstacles----
-turn90DegreR(robotPub);
-LocalizationPose = [5.5 ,18, 0];
-path = calculatePath(A, B, map, nodes);
-controller = setController(path);
-avoidObstaclesMode = true; %Obstacle detection not activated
-drivePath(B, controller, robotPub, odom, LocalizationPose, avoidObstaclesMode); %(Goal,controller) 
-findGreenDot(robotPub);
-% -----------------------------
-
-
-% %% Find robotpose with localization
+%% Find robotpose with localization
 LocalizationPose = MonteCarloLocalization(mapLocalization, robotPub);
 LocalizationCoordinates = [LocalizationPose(1), LocalizationPose(2)];
 disp("LocalizationPose:" + LocalizationPose);
@@ -103,19 +91,9 @@ function drivePath(gazeboGoal, controller, robotPub, odom, localizationPose, avo
     while( distanceToGoal > goalRadius )
     
         %Obstacle Detection 
-        if ((distanceToGoal < 8) && (avoidObstaclesMode == true)) %Only enabled before concrete obstacle            
-            pause(1);
-            [dist, a] =  scanWorld();
-            disp("Dist to Wall: " + dist); 
-                       
-            while (dist < 1)  
-                sendVelmsgRob(0, 0, robotPub);
-               
-                findWall(robotPub, true); %Turn to face wall         
-               
-                avoidObstacles(robotPub); 
-                [dist, a] = scanWorld();
-            end   
+        if ((distanceToGoal < 8) && (avoidObstaclesMode == true)) %Only enabled before concrete obstacle
+            [dist, a] =  scanWorld(robotPub);
+            disp("[dist, a]: " + dist + " " + a);
         end
     
         %Update the robotpose based on odometry
@@ -148,29 +126,33 @@ function drivePath(gazeboGoal, controller, robotPub, odom, localizationPose, avo
     end
 end
 
-function avoidObstacles(robotPub)
-       
-    [dist, a] = scanWorld();
-    disp("Dist to Wall - extra: " + dist); 
-    pause(1);
+function avoidObstacles(robotPub, odom)
+    
+    [dist, a] = scanWorld(robotPub, odom, false);
+    disp("Distance to wall - EstraScan: " + dist);
+    pause(2);
     
     if (dist < 0.6)
-        sendVelmsgRob(-0.7, 0, robotPub);
-        pause(1);
+        sendVelmsgRob(-1, 0, robotPub);
         sendVelmsgRob(0, 0, robotPub); %Stop robot
-            pause(1);     
-    end
-    turn90DegreR(robotPub);       
-    pause(1);
-
-    sendVelmsgRob(0.8, 0, robotPub);    
-    pause(1);
-
-    turn90DegreL(robotPub);
-    pause(1);  
+            pause(0.5);
+        scanWorld(robotPub, odom, true);       
+    else
+        turn90DegreR(robotPub);       
+        pause(0.5);
+            
+        sendVelmsgRob(0.8, 0, robotPub);    
+        pause(0.5);
+                      
+        turn90DegreL(robotPub);
+        
+        sendVelmsgRob(0, 0, robotPub);
+        pause(0.5);  
+    end   
+    scanWorld(robotPub, odom, true);   
 end
 
-function [dist, a] = scanWorld()
+function [dist, a] = scanWorld(robotPub, odom, extraScan)
 
    if ismember('/scan',rostopic('list'))
         scansub = rossubscriber('/scan');  
@@ -191,11 +173,24 @@ function [dist, a] = scanWorld()
             b = coef(1);
 
             %Calculate distance of the closest obstacle/wall
-            dist = abs(b)/(sqrt(a.^2+1));                               
-        else
+            dist = abs(b)/(sqrt(a.^2+1));
             
-            dist = 10;
-            a = 0;
+            minDist = 1;
+
+            if extraScan
+                if (dist < minDist)  
+                    sendVelmsgRob(0, 0, robotPub);
+                    
+                    findWall(robotPub, true); %Turn to face wall
+                    disp("FindWall");
+                    disp("Dist to Wall: " + dist); 
+                    
+                    avoidObstacles(robotPub, odom);  
+                end 
+            end                
+        else
+         dist = 10;
+         a = 0;
         end 
    end
 end
@@ -212,6 +207,7 @@ function odomPose = getCurrentPose(odom)
 
     odomPose = [x, y, theta];  
 end
+
 
 function estimatedPose = MonteCarloLocalization(map, robotPub)   
     odometryModel = odometryMotionModel;
@@ -332,20 +328,26 @@ function sendVelmsgRob(Linear, Angular, robotPub)
     send(robotPub,velmsg);   
 end
 
+
 function findGreenDot(robotPub)
     greenDotNotFound = true;
         
-    while (greenDotNotFound) 
+    while (greenDotNotFound)           
         img = takePicture();
-        turn35DegreL(robotPub);
         foundGreenDot = dotFound(img, robotPub);
-          
+        
+                        
         if (foundGreenDot) %Make BIB sound ----                
-            disp("---- !! Bip !! !! Bip !! !! Bip !! ---");
+                for c = 1:3
+                    disp("---- !! Bip !! !! Bip !! !! Bip !! ---")
+                    pause(0.5)
+                    return;
+                end            
             greenDotNotFound = false;
         end
     end
 end
+
 
 function img = takePicture()
     disp("Take Picture");
